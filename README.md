@@ -1,5 +1,5 @@
 
-# Quirk
+# Quirk <img src="assets/Quirk_Logo.png" width="30">
 
 Quirk is a statically-typed programming language designed for simplicity, performance, and safety. It features strong typing, structural method matching, and automatic memory management while allowing developers to manage memory explicitly when needed.
 
