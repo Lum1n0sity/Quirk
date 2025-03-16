@@ -22,7 +22,6 @@ Quirk is a statically-typed programming language designed for simplicity, perfor
 ## Future Plans
 - Add a low-level memory management module.
 - Expand standard library support.
-- Improve compiler optimizations.
 
 ## Contributing
 Contributions are welcome! Feel free to open issues and pull requests.
