@@ -57,20 +57,20 @@ pub enum TokenTypes {
     CharLiteral,
     BooleanLiteral,
     // Operators & Symbols
-    OperatorPlus,        
-    OperatorMinus,       
-    OperatorStar,        
-    OperatorSlash,       
-    OperatorPercent,     
-    OperatorAssign,      
-    OperatorEqual,       
-    OperatorNotEqual,    
-    OperatorLess,        
-    OperatorGreater,     
-    OperatorLessEqual,   
+    OperatorPlus,
+    OperatorMinus,
+    OperatorStar,
+    OperatorSlash,
+    OperatorPercent,
+    OperatorAssign,
+    OperatorEqual,
+    OperatorNotEqual,
+    OperatorLess,
+    OperatorGreater,
+    OperatorLessEqual,
     OperatorGreaterEqual,
     OperatorAnd,
-    OperatorOr, 
+    OperatorOr,
     OperatorNot,
     OperatorDot,
     OperatorComma,
@@ -107,9 +107,9 @@ pub fn tokenize(file_path: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
 
     let path = Path::new(file_path);
-    let mut file = File::open(&path).expect("Error: Could not open file: {}", file_path);
+    let mut file = File::open(&path).expect("Error: Could not open file");
     let mut content = String::new();
-    file.read_to_string(&mut content).expect("Error: Could not read file: {}", file_path);
+    file.read_to_string(&mut content).expect("Error: Could not read file");
 
     // Tokenization logic
 
