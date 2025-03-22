@@ -32,7 +32,7 @@ pub enum TokenType {
     PunctuationParenOpen, PunctuationParenClose, PunctuationBraceOpen, PunctuationBraceClose, PunctuationBracketOpen, PunctuationBracketClose,
     PunctuationDot, PunctuationComma, PunctuationColon,
     // Special Tokens
-    CommentSingle, CommentBlockStart, CommentBlockEnd, EOF, Unknown
+    EOF, Unknown
 }
 
 #[derive(Debug)]
@@ -59,6 +59,7 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
     let mut tokens = Vec::new();
     let mut word: String = String::new();
     let mut in_comment: bool = false;
+    let mut in_block_comment: bool = false;
     let mut in_string: bool = false;
     let mut line: u32 = 1;
     let mut column: u32 = 1;
@@ -81,6 +82,22 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
                 word.push(c);
             }
 
+            i += 1;
+            continue;
+        }
+
+        if in_block_comment {
+            if c == '*' && i + 1 < chars.len() && chars[i + 1] == '/' {
+                in_block_comment = false;
+                column += 1;
+                i += 2;
+                continue;
+            } else if c == '\n' {
+                line += 1;
+                column = 1;
+            } else {
+                column += 1;
+            }
             i += 1;
             continue;
         }
@@ -110,6 +127,13 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
                 column += 1;
             }
             i += 1;
+            continue;
+        }
+
+        if c == '/' && i + 1 < chars.len() && chars[i + 1] == '*' {
+            in_block_comment = true;
+            i += 2;
+            column += 2;
             continue;
         }
 
