@@ -56,8 +56,6 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
     let mut content: String = String::new();
     file_.read_to_string(&mut content).expect("Unable to read file");
 
-    // println!("Content: {}", content);
-
     let mut tokens = Vec::new();
     let mut word: String = String::new();
     let mut in_comment: bool = false;
@@ -69,6 +67,10 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
     let mut i: usize = 0;
     while i < chars.len() {
         let c = chars[i];
+
+        if c != '\n' && !c.is_whitespace() {
+            column += 1;
+        }
 
         if in_string {
             if c == '"' {
@@ -87,6 +89,7 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
             if c == '\n' {
                 line += 1;
                 column = 1;
+                in_comment = false;
             } else {
                 column += 1;
             }
@@ -134,7 +137,6 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
                 continue;
             }
 
-            println!("{}", chars[i..].iter().take(2).collect::<String>().as_str());
             let op = match_operator(&chars[i..]);
             if op.0 != TokenType::Unknown {
                 tokens.push(Token {token_type: op.0, value: op.1.clone(), line, column});
@@ -164,10 +166,8 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
 }
 
 fn classify_word(word: &str) -> TokenType {
-    println!("Word: {}", word);
     match_keyword(word)
         .or_else(|| match_literal(word))
-        // .or_else(|| match_punctuation(word))
         .or_else(|| Some(TokenType::Identifier))
         .unwrap()
 }
