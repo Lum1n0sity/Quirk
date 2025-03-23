@@ -5,7 +5,6 @@ use std::ffi::OsStr;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
-use std::cmp::PartialEq;
 
 #[derive(PartialEq, Debug)]
 pub enum TokenType {
@@ -278,7 +277,7 @@ fn match_punctuation(chars: &str) -> Option<TokenType> {
         "{" => Some(TokenType::PunctuationBraceOpen),
         "}" => Some(TokenType::PunctuationBraceClose),
         "[" => Some(TokenType::PunctuationBracketOpen),
-        "]" => Some(TokenType::PunctuationBraceClose),
+        "]" => Some(TokenType::PunctuationBracketClose),
         "," => Some(TokenType::PunctuationComma),
         "." => Some(TokenType::PunctuationDot),
         ":" => Some(TokenType::PunctuationColon),
