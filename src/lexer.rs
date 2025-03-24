@@ -5,8 +5,9 @@ use std::ffi::OsStr;
 use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
+use strum_macros::Display;
 
-#[derive(PartialEq, Debug)]
+#[derive(PartialEq, Debug, Clone, Display)]
 pub enum TokenType {
     // Keywords
     KeywordFn, KeywordImmut, KeywordLet, KeywordHeap, KeywordFree, KeywordReturn,
