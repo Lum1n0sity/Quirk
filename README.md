@@ -25,6 +25,10 @@ Quirk is a statically-typed programming language designed for simplicity, perfor
 
 ## Contributing
 Contributions are welcome! Feel free to open issues and pull requests.
+
+## License
+This project is licensed under the MIT License. [MIT](https://choosealicense.com/licenses/mit/)
+
 ## Authors
 
 - [@Lum1n0sity](https://www.github.com/Lum1n0sity)
