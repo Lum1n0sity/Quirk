@@ -20,6 +20,10 @@ impl Error {
     pub fn panic(&self) {
         panic!("{}", self);
     }
+
+    pub fn into_err<T>(self) -> Result<T, Self> {
+        Err(self)
+    }
 }
 
 impl std::fmt::Display for Error {
