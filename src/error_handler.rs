@@ -1,20 +1,34 @@
 use std::fmt::Formatter;
 
-pub struct Error {
+pub struct Err {
     pub error_type: String,
     pub message: String,
     pub line: u32,
-    pub column: u32
+    pub column: u32,
+    pub file: Option<String>,
+    pub source: Option<Box<dyn std::error::Error>>
 }
 
-impl Error {
-    pub fn new(error_type: String, message: String, line: u32, column: u32) -> Self {
-        Error {
+impl Err {
+    pub fn new(error_type: impl Into<String>, message: impl Into<String>, line: u32, column: u32) -> Self {
+        Err {
             error_type,
             message,
             line,
-            column
+            column,
+            file: None,
+            source: None
         }
+    }
+
+    pub fn with_file(mut self, file: impl Into<String>) -> Self {
+        self.file = Some(file.into());
+        self
+    }
+
+    pub fn with_source(mut self, source: impl std::error::Error + 'static) -> Self {
+        self.source = Some(Box::new(source));
+        self
     }
 
     pub fn panic(&self) {
@@ -26,7 +40,7 @@ impl Error {
     }
 }
 
-impl std::fmt::Display for Error {
+impl std::fmt::Display for Err {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         write!(f, "{}: {} at line {} column {}", self.error_type, self.message, self.line, self.column)
     }
