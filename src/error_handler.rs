@@ -1,7 +1,17 @@
 use std::fmt::Formatter;
+use strum_macros::Display;
+
+#[derive(Copy, Debug, Display)]
+pub enum ErrorType {
+    Syntax,
+    Type,
+    Runtime,
+    Undefined,
+    Other,
+}
 
 pub struct Err {
-    pub error_type: String,
+    pub error_type: ErrorType,
     pub message: String,
     pub line: u32,
     pub column: u32,
@@ -10,7 +20,7 @@ pub struct Err {
 }
 
 impl Err {
-    pub fn new(error_type: impl Into<String>, message: impl Into<String>, line: u32, column: u32) -> Self {
+    pub fn new(error_type: ErrorType, message: impl Into<String>, line: u32, column: u32) -> Self {
         Err {
             error_type,
             message,
@@ -42,6 +52,20 @@ impl Err {
 
 impl std::fmt::Display for Err {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        write!(f, "{}: {} at line {} column {}", self.error_type, self.message, self.line, self.column)
+        write!(
+            f,
+            "{}: {} at line {} column {}",
+            self.error_type, self.message, self.line, self.column
+        )?;
+
+        if let Some(file) = &self.file {
+            write!(f, " in file '{}'", file)?;
+        }
+
+        if let Some(source) = &self.source {
+            write!(f, "\nCaused by: {}", source)?;
+        }
+
+        Ok(())
     }
 }
