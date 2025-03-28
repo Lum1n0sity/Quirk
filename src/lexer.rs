@@ -170,7 +170,12 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
             }
 
             // Create a new error and panic when the character cannot be tokenized and is therefor TokenType::Unknown
-            let err = Err::new(ErrorType::Syntax, format!("Unknown character '{}'", c), line, column).with_file(file_path);
+            let err = Err::new(
+                ErrorType::Syntax,
+                format!("Unknown character '{}'", c),
+                line,
+                column
+            ).with_file(file_path);
             err.panic();
 
             i += 1;
