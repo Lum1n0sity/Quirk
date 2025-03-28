@@ -1,17 +1,18 @@
 use crate::lexer::Token;
 
-
 #[derive(Debug, PartialEq, Clone)]
 pub struct ASTNode {
     pub token_type: String,
-    pub value: String
+    pub value: String,
+    pub children: Vec<Box<ASTNode>>
 }
 
 impl ASTNode {
     pub fn new(token: &Token) -> Self {
         ASTNode {
             token_type: format!("{:?}", token.token_type),
-            value: token.value.clone()
+            value: token.value.clone(),
+            children: Vec::new()
         }
     }
 }
