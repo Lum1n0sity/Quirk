@@ -1,7 +1,7 @@
 use std::fmt::Formatter;
 use strum_macros::Display;
 
-#[derive(Copy, Debug, Display)]
+#[derive(Clone, Copy, Debug, Display)]
 pub enum ErrorType {
     Syntax,
     Type,
@@ -23,7 +23,7 @@ impl Err {
     pub fn new(error_type: ErrorType, message: impl Into<String>, line: u32, column: u32) -> Self {
         Err {
             error_type,
-            message,
+            message: message.into(),
             line,
             column,
             file: None,

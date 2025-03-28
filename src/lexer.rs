@@ -6,6 +6,7 @@ use std::fs::File;
 use std::io::prelude::*;
 use std::path::Path;
 use strum_macros::Display;
+use crate::error_handler::*;
 
 #[derive(PartialEq, Debug, Clone, Display)]
 pub enum TokenType {
@@ -168,12 +169,10 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
                 continue;
             }
 
-            tokens.push(Token {
-                token_type: TokenType::Unknown,
-                value: c.to_string(),
-                line,
-                column,
-            });
+            // Create a new error and panic when the character cannot be tokenized and is therefor TokenType::Unknown
+            let err = Err::new(ErrorType::Syntax, format!("Unknown character '{}'", c), line, column).with_file(file_path);
+            err.panic();
+
             i += 1;
         }
 
