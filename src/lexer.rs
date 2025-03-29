@@ -175,8 +175,7 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
                 format!("Unknown character '{}'", c),
                 line,
                 column
-            ).with_file(file_path);
-            err.panic();
+            ).with_file(file_path).panic();
 
             i += 1;
         }
