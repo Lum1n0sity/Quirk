@@ -21,18 +21,19 @@ impl ASTNode {
 pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
     let mut ast: Vec<Box<ASTNode>> = Vec::new();
     let mut i: usize = 0;
+    let mut current_parent: Option<Box<ASTNode>> = None;
 
     while i < tokens.len() {
-        if tokens[i].token_type == TokenType::Identifier{
-            ast.push(Box::new(ASTNode::new(&tokens[i])));
-            i += 1;
-        }
+        let token: &Token = &tokens[i];
 
-        if tokens[i].token_type == TokenType::KeywordLet {
+        // if token.token_type == TokenType::Identifier{
+        //     ast.push(Box::new(ASTNode::new(&tokens[i])));
+        //     i += 1;
+        // }
+
+        if token.token_type == TokenType::KeywordLet {
             let mut var_tokens: Vec<&Token> = Vec::new();
-
-            let mut variable_init: Box<ASTNode> = Box::new(ASTNode::new(&tokens[i]));
-            ast.push(variable_init);
+            let mut variable_init: Box<ASTNode> = Box::new(ASTNode::new(token));
 
             let mut j: usize = i + 1;
             while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon {
@@ -43,7 +44,16 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
             i = j;
 
             variable_init.children = generate_ast_variable(var_tokens, file_path);
+            current_parent = Some(variable_init);
         }
+
+        if token.token_type == TokenType::OperatorSemicolon {
+            if let Some(parent) = current_parent.take() {
+                ast.push(parent);
+            }
+        }
+
+        i += 1;
     }
 
     ast
