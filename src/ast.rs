@@ -26,10 +26,28 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
     while i < tokens.len() {
         let token: &Token = &tokens[i];
 
-        // if token.token_type == TokenType::Identifier{
-        //     ast.push(Box::new(ASTNode::new(&tokens[i])));
-        //     i += 1;
-        // }
+        if token.token_type == TokenType::Identifier{
+            let is_next_token_assign: bool = if tokens[i + 1].token_type == TokenType::OperatorAssign {true} else {false};
+
+            if is_next_token_assign {
+                let mut var_tokens: Vec<&Token> = Vec::new();
+                let mut variable_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+
+                let mut j: usize = i + 1;
+                while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon {
+                    var_tokens.push(&tokens[j]);
+                    j += 1;
+                }
+
+                i = j;
+
+                variable_init.children = generate_ast_variable(var_tokens, file_path);
+                current_parent = Some(variable_init);
+            }
+
+            // ast.push(Box::new(ASTNode::new(&tokens[i])));
+            i += 1;
+        }
 
         if token.token_type == TokenType::KeywordLet {
             let mut var_tokens: Vec<&Token> = Vec::new();
