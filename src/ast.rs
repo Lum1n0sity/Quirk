@@ -27,7 +27,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
         let token: &Token = &tokens[i];
 
         if token.token_type == TokenType::Identifier{
-            let is_next_token_assign: bool = if tokens[i + 1].token_type == TokenType::OperatorAssign {true} else {false};
+            let is_next_token_assign: bool = if i + 1 < token.len() && tokens[i + 1].token_type == TokenType::OperatorAssign {true} else {false};
 
             if is_next_token_assign {
                 let mut var_tokens: Vec<&Token> = Vec::new();
@@ -45,7 +45,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
                 current_parent = Some(variable_init);
             }
 
-            // ast.push(Box::new(ASTNode::new(&tokens[i])));
             i += 1;
         }
 
@@ -84,8 +83,8 @@ fn generate_ast_variable(tokens: Vec<&Token>, file_path: &str) -> Vec<Box<ASTNod
         let _err = Err::new(
             ErrorType::Syntax,
             "Variable declaration is empty",
-            tokens[0].line,
-            tokens[0].column
+            0,
+            0
         ).with_file(file_path).print();
 
         return var_ast;
