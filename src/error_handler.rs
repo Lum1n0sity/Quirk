@@ -45,6 +45,10 @@ impl Err {
         panic!("{}", self);
     }
 
+    pub fn print(&self) {
+        println!("{}", self);
+    }
+
     pub fn into_err<T>(self) -> Result<T, Self> {
         Err(self)
     }

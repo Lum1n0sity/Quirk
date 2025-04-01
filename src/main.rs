@@ -1,5 +1,5 @@
 mod lexer;
-// mod ast;
+mod ast;
 pub mod error_handler;
 
 fn main() {
