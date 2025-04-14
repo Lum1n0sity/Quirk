@@ -254,7 +254,6 @@ fn match_literal(word: &str) -> Option<TokenType> {
     if word.parse::<i64>().is_ok() { return Some(TokenType::IntegerLiteral) }
     if word.parse::<f64>().is_ok() { return Some(TokenType::FloatLiteral) }
     if word == "true" || word == "false" { return Some(TokenType::BooleanLiteral) }
-    if word == "void" { return Some(TokenType::KeywordVoid) }
     None
 }
 
