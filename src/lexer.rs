@@ -125,10 +125,8 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
                 tokens.push(Token {token_type: classify_word(&word), value: word.clone(), line, column});
                 word.clear();
             }
-            if c == '\n' {
-                line += 1;
-                column = 1;
-            } else {
+
+            if c != '\n' {
                 column += 1;
             }
             i += 1;
