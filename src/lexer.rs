@@ -226,6 +226,26 @@ fn match_keyword(word: &str) -> Option<TokenType> {
         "is_ok" => Some(TokenType::KeywordIsOk),
         "is_err" => Some(TokenType::KeywordIsErr),
         "new" => Some(TokenType::KeywordNew),
+        // Data Types
+        "int" => Some(TokenType::KeywordInt),
+        "uint" => Some(TokenType::KeywordUint),
+        "int8" => Some(TokenType::KeywordInt8),
+        "uint8" => Some(TokenType::KeywordUint8),
+        "int16" => Some(TokenType::KeywordInt16),
+        "uint16" => Some(TokenType::KeywordUint16),
+        "int32" => Some(TokenType::KeywordInt32),
+        "uint32" => Some(TokenType::KeywordUint32),
+        "int64" => Some(TokenType::KeywordInt64),
+        "uint64" => Some(TokenType::KeywordUint64),
+        "int128" => Some(TokenType::KeywordInt128),
+        "uint128" => Some(TokenType::KeywordUint128),
+        "float" => Some(TokenType::KeywordFloat),
+        "float32" => Some(TokenType::KeywordFloat32),
+        "float64" => Some(TokenType::KeywordFloat64),
+        "string" => Some(TokenType::KeywordString),
+        "char" => Some(TokenType::KeywordChar),
+        "bool" => Some(TokenType::KeywordBool),
+        "void" => Some(TokenType::KeywordVoid),
         _ => None
     }
 }
