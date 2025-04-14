@@ -14,13 +14,32 @@ fn main() {
     debug_print_ast(&ast);
 }
 
-fn debug_print_tokens(tokens: &Vec<lexer::Token>) {
+
+/// Prints a debug representation of the tokens.
+///
+/// # Parameters
+///
+/// - `tokens`: A reference to a vector of `Token`s.
+///
+/// This function iterates over each token and prints its debug
+/// representation to the console, aiding in debugging and visualization
+/// of the token stream.
+pub fn debug_print_tokens(tokens: &Vec<lexer::Token>) {
     for token in tokens {
         println!("{:?}", token);
     }
 }
 
-fn debug_print_ast(ast: &Vec<Box<ast::ASTNode>>) {
+/// Prints a formatted debug representation of the Abstract Syntax Tree (AST).
+///
+/// # Parameters
+///
+/// - `ast`: A reference to a vector of boxed `ASTNode`s representing the AST.
+///
+/// This function iterates over each node in the AST and prints its debug
+/// representation to the console, aiding in debugging and visualization of
+/// the AST structure.
+pub fn debug_print_ast(ast: &Vec<Box<ast::ASTNode>>) {
     for node in ast {
         println!("{:#?}", node);
     }
