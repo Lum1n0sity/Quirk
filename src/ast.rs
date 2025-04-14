@@ -1,3 +1,5 @@
+#![allow(unused_assignments)]
+
 use crate::lexer::{Token, TokenType};
 use crate::error_handler::*;
 
@@ -34,7 +36,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
                 let mut variable_init: Box<ASTNode> = Box::new(ASTNode::new(token));
 
                 let mut j: usize = i + 1;
-                while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon {
+                while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon && tokens[j].token_type != TokenType::EOL {
                     var_tokens.push(&tokens[j]);
                     j += 1;
                 }
@@ -42,10 +44,20 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
                 i = j;
 
                 variable_init.children = generate_ast_variable(var_tokens, file_path);
-                current_parent = Some(variable_init);
-            }
 
-            i += 1;
+                if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
+                    variable_init.children.push(Box::new(ASTNode::new(&tokens[i])));
+                    current_parent = Some(variable_init);
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Missing semicolon",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+                continue;
+            }
         }
 
         if token.token_type == TokenType::KeywordLet {
@@ -53,7 +65,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
             let mut variable_init: Box<ASTNode> = Box::new(ASTNode::new(token));
 
             let mut j: usize = i + 1;
-            while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon {
+            while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon && tokens[j].token_type != TokenType::EOL {
                 var_tokens.push(&tokens[j]);
                 j += 1;
             }
@@ -61,7 +73,20 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
             i = j;
 
             variable_init.children = generate_ast_variable(var_tokens, file_path);
-            current_parent = Some(variable_init);
+
+            if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
+                variable_init.children.push(Box::new(ASTNode::new(&tokens[i])));
+                current_parent = Some(variable_init);
+            } else {
+                let _err = Err::new(
+                    ErrorType::Syntax,
+                    "Missing semicolon",
+                    token.line,
+                    token.column
+                ).with_file(file_path).panic();
+            }
+
+            continue;
         }
 
         if token.token_type == TokenType::OperatorSemicolon {
@@ -76,6 +101,20 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
     ast
 }
 
+/// Generates an Abstract Syntax Tree (AST) from a variable declaration.
+///
+/// # Parameters
+///
+/// - `tokens`: The tokens of the variable declaration.
+/// - `file_path`: The path of the file the variable declaration is in.
+///
+/// # Returns
+///
+/// A vector of `ASTNode`s representing the variable declaration.
+///
+/// # Errors
+///
+/// Prints an error message if `tokens` is empty and returns an empty vector.
 fn generate_ast_variable(tokens: Vec<&Token>, file_path: &str) -> Vec<Box<ASTNode>> {
     let mut var_ast: Vec<Box<ASTNode>> = Vec::new();
 
@@ -85,7 +124,7 @@ fn generate_ast_variable(tokens: Vec<&Token>, file_path: &str) -> Vec<Box<ASTNod
             "Variable declaration is empty",
             0,
             0
-        ).with_file(file_path).print();
+        ).with_file(file_path).panic();
 
         return var_ast;
     }

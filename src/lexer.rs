@@ -33,7 +33,7 @@ pub enum TokenType {
     PunctuationParenOpen, PunctuationParenClose, PunctuationBraceOpen, PunctuationBraceClose, PunctuationBracketOpen, PunctuationBracketClose,
     PunctuationDot, PunctuationComma, PunctuationColon,
     // Special Tokens
-    EOF, Unknown
+    EOL, EOF, Unknown
 }
 
 #[derive(Debug)]
@@ -72,6 +72,10 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
 
         if c != '\n' && !c.is_whitespace() {
             column += 1;
+        }
+
+        if c == '\n' {
+            tokens.push(Token{ token_type: TokenType::EOL, value: "\n".to_string(), line, column});
         }
 
         if in_string {
