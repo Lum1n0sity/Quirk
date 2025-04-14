@@ -27,7 +27,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
         let token: &Token = &tokens[i];
 
         if token.token_type == TokenType::Identifier{
-            let is_next_token_assign: bool = if i + 1 < token.len() && tokens[i + 1].token_type == TokenType::OperatorAssign {true} else {false};
+            let is_next_token_assign: bool = if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::OperatorAssign {true} else {false};
 
             if is_next_token_assign {
                 let mut var_tokens: Vec<&Token> = Vec::new();
