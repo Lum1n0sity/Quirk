@@ -207,7 +207,7 @@ fn match_keyword(word: &str) -> Option<TokenType> {
         "immut" => Some(TokenType::KeywordImmut),
         "let" => Some(TokenType::KeywordLet),
         "heap!" => Some(TokenType::KeywordHeap),
-        "free()" => Some(TokenType::KeywordFree),
+        "free" => Some(TokenType::KeywordFree),
         "return" => Some(TokenType::KeywordReturn),
         "construct" => Some(TokenType::KeywordConstruct),
         "if" => Some(TokenType::KeywordIf),
