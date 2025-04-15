@@ -147,9 +147,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
         }
 
         if token.token_type == TokenType::Identifier{
-            let is_next_token_assign: bool = if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::OperatorAssign {true} else {false};
-
-            if is_next_token_assign {
+            if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::OperatorAssign {
                 let mut var_tokens: Vec<&Token> = Vec::new();
                 let mut variable_init: Box<ASTNode> = Box::new(ASTNode::new(token));
 
@@ -176,6 +174,17 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
                 }
                 continue;
             }
+
+            if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::PunctuationParenOpen {
+                let (function_call, new_i) = generate_ast_function_call(&tokens, i, file_path);
+
+                i = new_i;
+
+                if let Some(mut parent) = current_parent.take() {
+                    parent.children.push(function_call.unwrap());
+                }
+                continue;
+            }
         }
 
         if token.token_type == TokenType::OperatorSemicolon {
@@ -188,6 +197,35 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
     }
 
     ast
+}
+
+fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) -> (Option<Box<ASTNode>>, usize){
+    let mut function_call: Box<ASTNode> = Box::new(ASTNode::new(&tokens[i]));
+    let mut function_call_tokens: Vec<&Token> = Vec::new();
+
+    let mut j: usize = i + 1;
+    while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon && tokens[j].token_type != TokenType::PunctuationParenClose && tokens[j].token_type != TokenType::EOL {
+        function_call_tokens.push(&tokens[j]);
+        j += 1;
+    }
+
+    for tokens in function_call_tokens {
+        function_call.children.push(Box::new(ASTNode::new(tokens)));
+    }
+
+    if j < tokens.len() && tokens[j + 1].token_type == TokenType::OperatorSemicolon {
+        function_call.children.push(Box::new(ASTNode::new(&tokens[j])));
+        (Some(function_call), j)
+    } else {
+        let _err = Err::new(
+            ErrorType::Syntax,
+            "Missing semicolon",
+            tokens[i].line,
+            tokens[i].column
+        ).with_file(file_path).panic();
+
+        (None, j)
+    }
 }
 
 /// Generates an Abstract Syntax Tree (AST) from a variable declaration.
