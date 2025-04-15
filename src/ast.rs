@@ -257,24 +257,6 @@ fn pop_parent_node(mut scope_stack: Vec<Rc<RefCell<Box<ASTNode>>>>, current_pare
     (scope_stack, Rc::clone(current_parent))
 }
 
-// fn pop_parent_node<'a>(mut scope_stack: Vec<&'a mut Box<ASTNode>>, current_parent: &mut &'a mut Box<ASTNode>, ) -> (Vec<&'a mut Box<ASTNode>>, &'a mut Box<ASTNode>) {
-//     if !scope_stack.is_empty() {
-//         scope_stack.pop();
-//         if let Some(last) = scope_stack.last_mut() {
-//             *current_parent = *last;
-//         } else {
-//             let _err = Err::new(
-//                 ErrorType::Other,
-//                 "Internal Error: Scope stack is empty — no valid current_parent!",
-//                 0,
-//                 0
-//             ).panic();
-//         }
-//     }
-//
-//     (scope_stack, current_parent)
-// }
-
 /// Generates an Abstract Syntax Tree (AST) from a function call.
 ///
 /// # Parameters
