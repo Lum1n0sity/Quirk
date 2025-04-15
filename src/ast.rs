@@ -38,7 +38,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
 
             if token.token_type == TokenType::KeywordFn {
                 let mut fn_init_tokens: Vec<&Token> = Vec::new();
-                let mut fn_int: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut fn_init: Box<ASTNode> = Box::new(ASTNode::new(token));
 
                 let mut j: usize = i + 1;
                 while j < tokens.len() && tokens[j].token_type != TokenType::PunctuationBraceOpen {
