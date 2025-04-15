@@ -30,15 +30,16 @@ pub fn debug_print_tokens(tokens: &Vec<lexer::Token>) {
     }
 }
 
-/// Prints a formatted debug representation of the Abstract Syntax Tree (AST).
+
+/// Prints a debug representation of the AST to the console.
 ///
 /// # Parameters
 ///
-/// - `ast`: A reference to a vector of boxed `ASTNode`s representing the AST.
+/// - `node`: A reference to a boxed `ASTNode`.
 ///
-/// This function iterates over each node in the AST and prints its debug
-/// representation to the console, aiding in debugging and visualization of
-/// the AST structure.
+/// This function prints the debug representation of `node` and its children
+/// to the console, aiding in debugging and visualization of the Abstract
+/// Syntax Tree (AST).
 pub fn debug_print_ast(node: &Box<ast::ASTNode>) {
     println!("{:#?}", node);
 }
