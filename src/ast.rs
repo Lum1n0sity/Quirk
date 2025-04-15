@@ -204,7 +204,16 @@ fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) ->
     let mut function_call_tokens: Vec<&Token> = Vec::new();
 
     let mut j: usize = i + 1;
-    while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon && tokens[j].token_type != TokenType::PunctuationParenClose && tokens[j].token_type != TokenType::EOL {
+    let mut paren_count = 0;
+    while j < tokens.len() && j + 1 < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon && tokens[j].token_type != TokenType::EOL {
+        if tokens[j].token_type == TokenType::PunctuationParenOpen {
+            paren_count += 1;
+        } else if tokens[j].token_type == TokenType::PunctuationParenClose {
+            if paren_count == 0 {
+                break;
+            }
+            paren_count -= 1;
+        }
         function_call_tokens.push(&tokens[j]);
         j += 1;
     }
@@ -213,7 +222,7 @@ fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) ->
         function_call.children.push(Box::new(ASTNode::new(tokens)));
     }
 
-    if j < tokens.len() && tokens[j + 1].token_type == TokenType::OperatorSemicolon {
+    if j < tokens.len() && tokens[j].token_type == TokenType::OperatorSemicolon {
         function_call.children.push(Box::new(ASTNode::new(&tokens[j])));
         (Some(function_call), j)
     } else {
