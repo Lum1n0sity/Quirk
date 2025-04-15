@@ -85,6 +85,37 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Vec<Box<ASTNode>> {
                 continue;
             }
 
+            if token.token_type == TokenType::KeywordReturn {
+                let mut return_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut return_tokens: Vec<&Token> = Vec::new();
+
+                let mut j: usize = i + 1;
+                while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon && tokens[j].token_type != TokenType::EOL {
+                    return_tokens.push(&tokens[j]);
+                    j += 1;
+                }
+
+                i = j;
+
+                for token in return_tokens {
+                    return_init.children.push(Box::new(ASTNode::new(token)));
+                }
+
+                if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
+                    return_init.children.push(Box::new(ASTNode::new(&tokens[i])));
+                    current_parent = Some(return_init);
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Missing semicolon",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+
+                continue;
+            }
+
             if token.token_type == TokenType::KeywordLet {
                 let mut var_tokens: Vec<&Token> = Vec::new();
                 let mut variable_init: Box<ASTNode> = Box::new(ASTNode::new(token));
