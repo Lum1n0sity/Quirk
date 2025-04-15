@@ -33,7 +33,9 @@ pub enum TokenType {
     PunctuationParenOpen, PunctuationParenClose, PunctuationBraceOpen, PunctuationBraceClose, PunctuationBracketOpen, PunctuationBracketClose,
     PunctuationDot, PunctuationComma, PunctuationColon,
     // Special Tokens
-    EOL, EOF, Unknown
+    EOL, EOF, Unknown,
+    // AST Generator Helpers
+    Root
 }
 
 #[derive(Debug)]
