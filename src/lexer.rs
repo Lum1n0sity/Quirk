@@ -35,7 +35,7 @@ pub enum TokenType {
     // Special Tokens
     EOL, EOF, Unknown,
     // AST Generator Helpers
-    Root
+    Root, CodeBlock
 }
 
 #[derive(Debug)]
