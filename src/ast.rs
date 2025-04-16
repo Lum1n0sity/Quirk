@@ -43,7 +43,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
         // Update scope if token is a }
         if token.token_type == TokenType::PunctuationBraceClose {
             let new_current_parent = pop_current_parent(&root, &current_parent_, file_path);
-            current_parent_ = new_current_parent.unwrap();
+            current_parent_ = new_current_parent;
             i += 1;
             continue;
         }
@@ -81,7 +81,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 }
 
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(fn_init)));
-                
+
                 let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
                 let code_block: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token))));
 
@@ -263,8 +263,8 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 /// # Errors
 ///
 /// Prints an error message if `current_parent` is the root node, and if the parent of `current_parent` is not found.
-fn pop_current_parent(root: &Rc<RefCell<Box<ASTNode>>>, current_parent: &Rc<RefCell<Box<ASTNode>>>, file_path: &str) -> Option<Rc<RefCell<Box<ASTNode>>>> {
-    if root.borrow().children.is_empty() {
+fn pop_current_parent(root: &Rc<RefCell<Box<ASTNode>>>, current_parent: &Rc<RefCell<Box<ASTNode>>>, file_path: &str) -> Rc<RefCell<Box<ASTNode>>> {
+    if Rc::ptr_eq(root, current_parent) {
         let _err = Err::new(
             ErrorType::Syntax,
             "You cannot change the scope on root level!",
@@ -292,7 +292,7 @@ fn pop_current_parent(root: &Rc<RefCell<Box<ASTNode>>>, current_parent: &Rc<RefC
     };
 
     if let Some(found) = find_parent_of_current_parent(&root, &current_parent) {
-        Some(found)
+        found
     } else {
         let _err = Err::new(
             ErrorType::Other,
@@ -314,11 +314,11 @@ fn pop_current_parent(root: &Rc<RefCell<Box<ASTNode>>>, current_parent: &Rc<RefC
 ///
 /// # Returns
 ///
-/// Returns an `Option` containing the parent node of `current_parent` if found, wrapped in `Rc<RefCell<Box<ASTNode>>>`. 
+/// Returns an `Option` containing the parent node of `current_parent` if found, wrapped in `Rc<RefCell<Box<ASTNode>>>`.
 /// If the parent is not found, returns `None`.
 ///
-/// This function recursively traverses the children of the `current` node to locate the `current_parent` node and its 
-/// corresponding parent. If `current_parent` is found among the children of `current`, the function returns `current` as 
+/// This function recursively traverses the children of the `current` node to locate the `current_parent` node and its
+/// corresponding parent. If `current_parent` is found among the children of `current`, the function returns `current` as
 /// the parent. Otherwise, it continues searching through the child nodes.
 fn find_parent_of_current_parent(current: &Rc<RefCell<Box<ASTNode>>>, current_parent: &Rc<RefCell<Box<ASTNode>>>) -> Option<Rc<RefCell<Box<ASTNode>>>> {
     let current_borrow = current.borrow();
