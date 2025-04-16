@@ -34,7 +34,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
     let root: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(root_token))));
     let mut current_parent_: Rc<RefCell<Box<ASTNode>>> = Rc::clone(&root);
-    let mut scope_stack_: Vec<Rc<RefCell<Box<ASTNode>>>> = vec![Rc::clone(&root)];
 
     let mut i: usize = 0;
 
@@ -43,8 +42,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
         // Update scope if token is a }
         if token.token_type == TokenType::PunctuationBraceClose {
-            let (new_scope_stack, new_current_parent) = pop_parent_node(scope_stack_, &mut current_parent_);
-            scope_stack_ = new_scope_stack;
+            let new_current_parent = pop_current_parent(&root, &current_parent_, file_path);
             current_parent_ = new_current_parent;
             i += 1;
             continue;
@@ -92,7 +90,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 current_parent_.borrow_mut().children.push(code_block);
 
                 current_parent_ = code_block_clone;
-                scope_stack_.push(Rc::clone(&current_parent_));
 
                 continue;
             }
@@ -116,10 +113,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
                     return_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
                     current_parent_.borrow_mut().children.push(return_init);
-
-                    let (new_scope_stack, new_current_parent) = pop_parent_node(scope_stack_, &mut current_parent_);
-                    scope_stack_ = new_scope_stack;
-                    current_parent_ = new_current_parent;
                 } else {
                     let _err = Err::new(
                         ErrorType::Syntax,
@@ -152,12 +145,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
                     free_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
                     current_parent_.borrow_mut().children.push(free_init);
-
-                    if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::PunctuationBraceClose {
-                        let (new_scope_stack, new_current_parent) = pop_parent_node(scope_stack_, &mut current_parent_);
-                        scope_stack_ = new_scope_stack;
-                        current_parent_ = new_current_parent;
-                    }
                 } else {
                     let _err = Err::new(
                         ErrorType::Syntax,
@@ -220,12 +207,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
                     identifier_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
                     current_parent_.borrow_mut().children.push(identifier_init);
-
-                    if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::PunctuationBraceClose {
-                        let (new_scope_stack, new_current_parent) = pop_parent_node(scope_stack_, &mut current_parent_);
-                        scope_stack_ = new_scope_stack;
-                        current_parent_ = new_current_parent;
-                    }
                 } else {
                     let _err = Err::new(
                         ErrorType::Syntax,
@@ -250,7 +231,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
         i += 1;
     }
 
-    scope_stack_.clear();
+    // scope_stack_.clear();
     drop(current_parent_);
     if let Ok(inner) = Rc::try_unwrap(root) {
         let boxed_ast: Box<ASTNode> = inner.into_inner();
@@ -267,36 +248,92 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     }
 }
 
-/// Pops the last element from the scope stack and sets `current_parent` to the last element on the stack.
+/// Pops the current parent node from the AST scope stack.
 ///
 /// # Parameters
 ///
-/// - `scope_stack`: The stack of parent nodes.
-/// - `current_parent`: A mutable reference to the current parent node.
+/// - `root`: The root node of the AST.
+/// - `current_parent`: The current parent node of the scope stack.
+/// - `file_path`: The path of the file the AST is from.
 ///
 /// # Returns
 ///
-/// A tuple containing the modified `scope_stack` and the new `current_parent`.
+/// An `Option` containing the parent node of `current_parent` if found. If `current_parent` is the root node, returns `None`.
 ///
-/// # Panics
+/// # Errors
 ///
-/// If the `scope_stack` is empty, an error is thrown.
-fn pop_parent_node(mut scope_stack: Vec<Rc<RefCell<Box<ASTNode>>>>, current_parent: &mut Rc<RefCell<Box<ASTNode>>>) -> (Vec<Rc<RefCell<Box<ASTNode>>>>, Rc<RefCell<Box<ASTNode>>>) {
-    if !scope_stack.is_empty() {
-        scope_stack.pop();
-        if let Some(last) = scope_stack.last() {
-            *current_parent = Rc::clone(last);
-        } else {
+/// Prints an error message if `current_parent` is the root node, and if the parent of `current_parent` is not found.
+fn pop_current_parent(root: &Rc<RefCell<Box<ASTNode>>>, current_parent: &Rc<RefCell<Box<ASTNode>>>, file_path: &str) -> Rc<RefCell<Box<ASTNode>>> {
+    if Rc::ptr_eq(root, current_parent) {
+        let _err = Err::new(
+            ErrorType::Syntax,
+            "You cannot change the scope on root level!",
+            0,
+            0
+        ).with_file(file_path).panic();
+
+        unreachable!();
+    }
+
+    // Check if current_parent is empty
+    let current_borrow = current_parent.try_borrow();
+    let _current_borrow = match current_borrow {
+        Ok(val) => val,
+        Err(_) => {
             let _err = Err::new(
                 ErrorType::Other,
-                "Internal Error: Scope stack is empty — no valid current_parent!",
+                "Internal Error: Failed to borrow current_parent!",
                 0,
                 0
-            ).panic();
+            ).with_file(file_path).panic();
+
+            unreachable!();
+        }
+    };
+
+    if let Some(found) = find_parent_of_current_parent(&root, &current_parent) {
+        found
+    } else {
+        let _err = Err::new(
+            ErrorType::Other,
+            "Internal Error: Failed to find parent of current_parent!",
+            0,
+            0
+        ).with_file(file_path).panic();
+
+        unreachable!();
+    }
+}
+
+/// Finds the parent node of the specified current parent node in the AST.
+///
+/// # Parameters
+///
+/// - `current`: A reference to the current `ASTNode` wrapped in `Rc<RefCell<Box<ASTNode>>>`.
+/// - `current_parent`: A reference to the current parent `ASTNode` wrapped in `Rc<RefCell<Box<ASTNode>>>`.
+///
+/// # Returns
+///
+/// Returns an `Option` containing the parent node of `current_parent` if found, wrapped in `Rc<RefCell<Box<ASTNode>>>`.
+/// If the parent is not found, returns `None`.
+///
+/// This function recursively traverses the children of the `current` node to locate the `current_parent` node and its
+/// corresponding parent. If `current_parent` is found among the children of `current`, the function returns `current` as
+/// the parent. Otherwise, it continues searching through the child nodes.
+fn find_parent_of_current_parent(current: &Rc<RefCell<Box<ASTNode>>>, current_parent: &Rc<RefCell<Box<ASTNode>>>) -> Option<Rc<RefCell<Box<ASTNode>>>> {
+    let current_borrow = current.borrow();
+
+    for child in &current_borrow.children {
+        if Rc::ptr_eq(child, current_parent) {
+            return Some(Rc::clone(current));
+        }
+
+        if let Some(found) = find_parent_of_current_parent(child, current_parent) {
+            return Some(found);
         }
     }
 
-    (scope_stack, Rc::clone(current_parent))
+    None
 }
 
 /// Generates an Abstract Syntax Tree (AST) from a function call.
@@ -357,6 +394,20 @@ fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) ->
     }
 }
 
+/// Generates an Abstract Syntax Tree (AST) from a function initialization.
+///
+/// # Parameters
+///
+/// - `tokens`: A vector of references to `Token`s representing the function initialization.
+/// - `file_path`: The path of the file the function initialization is in.
+///
+/// # Returns
+///
+/// A vector of `Rc<RefCell<Box<ASTNode>>>` representing the function initialization in the AST.
+///
+/// # Errors
+///
+/// If `tokens` is empty, a syntax error is triggered, indicating that the function initialization is empty.
 fn generate_ast_fn_init(tokens: Vec<&Token>, file_path: &str) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
     let mut fn_init_ast: Vec<Rc<RefCell<Box<ASTNode>>>> = Vec::new();
 
