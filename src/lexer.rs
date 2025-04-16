@@ -75,9 +75,11 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
         if c != '\n' && !c.is_whitespace() {
             column += 1;
         }
-
+ 
         if c == '\n' {
-            tokens.push(Token{ token_type: TokenType::EOL, value: "\n".to_string(), line, column});
+            tokens.push(Token{ token_type: TokenType::EOL, value: "\n".to_string(), line, column});            
+            line += 1;
+            column = 1;
         }
 
         if in_string {
