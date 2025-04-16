@@ -7,11 +7,11 @@ pub mod error_handler;
 fn main() {
     let tokens: Vec<lexer::Token> = lexer::get_tokens("/home/raphael/Development/Quirk/test.qk");
 
-    // debug_print_tokens(&tokens);
+    debug_print_tokens(&tokens);
 
     let ast: Box<ast::ASTNode> = ast::generate_ast(tokens, "/home/raphael/Development/Quirk/test.qk");
 
-    debug_print_ast(&ast);
+    // debug_print_ast(&ast);
 }
 
 
