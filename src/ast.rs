@@ -41,8 +41,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     while i < tokens.len() {
         let token: &Token = &tokens[i];
 
-        println!("Current Token: {:?}", token);
-        
         // Update scope if token is a }
         if token.token_type == TokenType::PunctuationBraceClose {
             let (new_scope_stack, new_current_parent) = pop_parent_node(scope_stack_, &mut current_parent_);
@@ -88,14 +86,14 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
                 let code_block: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token))));
-                
+
                 let code_block_clone: Rc<RefCell<Box<ASTNode>>> = Rc::clone(&code_block);
-                
+
                 current_parent_.borrow_mut().children.push(code_block);
-                
+
                 current_parent_ = code_block_clone;
                 scope_stack_.push(Rc::clone(&current_parent_));
-                
+
                 continue;
             }
 
@@ -200,7 +198,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 continue;
             }
-            
+
             continue;
         }
 
