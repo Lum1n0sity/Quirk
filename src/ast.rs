@@ -320,11 +320,11 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 continue;
             }
-            
+
             if token.token_type == TokenType::KeywordWhile {
                 let mut while_init: Box<ASTNode> = Box::new(ASTNode::new(token));
                 let mut condition_tokens: Vec<&Token> = Vec::new();
-                
+
                 let mut j: usize = i + 1;
                 while j < tokens.len() && tokens[j].token_type != TokenType::EOL {
                     condition_tokens.push(&tokens[j]);
@@ -341,11 +341,11 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         token.column
                     ).with_file(file_path).panic();
                 }
-                
+
                 while_init.children = generate_condition_ast(condition_tokens, file_path);
-                
+
                 let last_child: &&Rc<RefCell<Box<ASTNode>>> = &while_init.children.last().unwrap();
-                
+
                 if (**last_child).borrow().token_type != TokenType::PunctuationBraceOpen {
                     let _err = Err::new(
                         ErrorType::Syntax,
@@ -354,7 +354,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         tokens[i].column
                     ).with_file(file_path).panic();
                 }
-                
+
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(while_init)));
 
                 let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
@@ -368,17 +368,17 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 continue;
             }
-            
+
             if token.token_type == TokenType::KeywordFor {
                 let mut for_init: Box<ASTNode> = Box::new(ASTNode::new(token));
                 let mut condition_tokens: Vec<&Token> = Vec::new();
-                
-                let mut j: usize = i;
-                while i < tokens.len() && tokens[j].token_type != TokenType::EOL {
+
+                let mut j: usize = i + 1;
+                while j < tokens.len() && tokens[j].token_type != TokenType::EOL {
                     condition_tokens.push(&tokens[j]);
                     j += 1;
                 }
-                
+
                 if j < tokens.len() {
                     i = j;
                 } else {
@@ -389,9 +389,9 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         token.column
                     ).with_file(file_path).panic();
                 }
-                                
+
                 for_init.children = generate_for_loop_condition_ast(condition_tokens, file_path, tokens[i].line);
-                
+
                 let last_child: &&Rc<RefCell<Box<ASTNode>>> = &for_init.children.last().unwrap();
                 if (**last_child).borrow().token_type != TokenType::PunctuationBraceOpen {
                     let _err = Err::new(
@@ -443,17 +443,17 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         token.column
                     ).with_file(file_path).panic();
                 }
-                
+
                 continue;
             }
-            
+
             if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::OperatorIncrease || tokens[i + 1].token_type == TokenType::OperatorDecrease {
                 let identifier_init: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
-                
+
                 identifier_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i + 1])))));
-                
+
                 i += 2;
-                
+
                 if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
                     identifier_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
                     current_parent_.borrow_mut().children.push(identifier_init);
@@ -465,7 +465,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         token.column
                     ).with_file(file_path).panic();
                 }
-                
+
                 continue;
             }
 
@@ -476,7 +476,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 current_parent_.borrow_mut().children.push(function_call.unwrap());
                 continue;
-            }                                        
+            }
         }
 
         i += 1;
@@ -500,7 +500,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
 fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u32) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
     let mut condition_ast: Vec<Rc<RefCell<Box<ASTNode>>>> = Vec::new();
-    
+
     if tokens.is_empty() {
       let _err = Err::new(
           ErrorType::Syntax,
@@ -509,9 +509,9 @@ fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u
            0
       ).with_file(file_path).panic();
     }
-    
+
     let mut prev_token: &Token = tokens[0];
-    
+
     for token in tokens {
         if prev_token.token_type == TokenType::Identifier && token.token_type == TokenType::OperatorIncrease || token.token_type == TokenType::OperatorDecrease {
             let node: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(prev_token))));
@@ -521,11 +521,11 @@ fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u
             let node: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
             condition_ast.push(node);
         }
-        
+
         prev_token = token;
-        
+
     }
-    
+
     condition_ast
 }
 
