@@ -51,7 +51,12 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
 
     // Check if file ends with .qk
     if !path.file_name().unwrap_or_else(|| OsStr::new("")).to_str().unwrap().ends_with(".qk") {
-        panic!("File must end with .qk");
+        let _err = Err::new(
+            ErrorType::Syntax,
+            "Invalid file type, file must end with .qk",
+            0,
+            0
+        ).with_file(file_path).panic();
     }
 
     // Get file content
