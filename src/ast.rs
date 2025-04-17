@@ -594,7 +594,7 @@ fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u
     if tokens.is_empty() {
       let _err = Err::new(
           ErrorType::Syntax,
-          "Missing condtion",
+          "Missing condition",
           line,
            0
       ).with_file(file_path).panic();
