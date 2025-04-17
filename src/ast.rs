@@ -41,7 +41,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
         let token: &Token = &tokens[i];
 
         println!("{:?}", token);
-        
+
         // Update scope if token is a }
         if token.token_type == TokenType::PunctuationBraceClose {
             let new_current_parent = pop_current_parent(&root, &current_parent_, file_path);
@@ -67,7 +67,16 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     j += 1;
                 }
 
-                i = j;
+                if i < tokens.len() {
+                    i = j;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Unexpected EOF after function initialization",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
 
                 fn_init.children = generate_ast_fn_init(fn_init_tokens, file_path);
 
@@ -197,13 +206,22 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     condition_tokens.push(&tokens[j]);
                     j += 1;
                 }
-                
-                i = j;
-                
+
+                if i < tokens.len() {
+                    i = j;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Unexpected EOF after if-condition",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+
                 if_init.children = generate_condition_ast(condition_tokens, file_path);
 
                 let last_child: &&Rc<RefCell<Box<ASTNode>>> = &if_init.children.last().unwrap();
-                
+
                 if (**last_child).borrow().token_type != TokenType::PunctuationBraceOpen {
                     let _err = Err::new(
                         ErrorType::Syntax,
@@ -214,20 +232,20 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 }
 
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(if_init)));
-                
+
                 let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
                 let code_block: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token))));
-                
+
                 let code_block_clone: Rc<RefCell<Box<ASTNode>>> = Rc::clone(&code_block);
 
                 current_parent_.borrow_mut().children.push(code_block);
 
                 current_parent_ = code_block_clone;
-                
+
                 continue;
             }
-            
-            
+
+
             if token.token_type == TokenType::KeywordElseIf {
                 let mut elif_init:Box<ASTNode> = Box::new(ASTNode::new(token));
                 let mut condition_tokens: Vec<&Token> = Vec::new();
@@ -238,7 +256,16 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     j += 1;
                 }
 
-                i = j;
+                if i < tokens.len() {
+                    i = j;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Unexpected EOF after elif-condition",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
 
                 elif_init.children = generate_condition_ast(condition_tokens, file_path);
 
@@ -263,10 +290,10 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 current_parent_.borrow_mut().children.push(code_block);
 
                 current_parent_ = code_block_clone;
-                
+
                 continue;
             }
-            
+
             if token.token_type == TokenType::KeywordElse {
                 let mut else_init:Box<ASTNode> = Box::new(ASTNode::new(token));
 
@@ -278,10 +305,10 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         tokens[i].column
                     ).with_file(file_path).panic();
                 }
-                
+
                 else_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i + 1])))));
                 i += 1;
-                
+
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(else_init)));
 
                 let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
@@ -338,7 +365,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
         i += 1;
     }
-    
+
     drop(current_parent_);
     if let Ok(inner) = Rc::try_unwrap(root) {
         let boxed_ast: Box<ASTNode> = inner.into_inner();
@@ -357,22 +384,22 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
 fn generate_condition_ast(tokens: Vec<&Token>, file_path: &str) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
     let mut condition_ast: Vec<Rc<RefCell<Box<ASTNode>>>> = Vec::new();
-    
+
     if tokens.is_empty() {
         let _err = Err::new(
             ErrorType::Syntax,
             "Missing condition",
-            tokens[0].line,
-            tokens[0].column
+            0,
+            0
         ).with_file(file_path).panic();
-        
+
         unreachable!();
     }
-    
+
     for token in tokens {
         condition_ast.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
     }
-    
+
     condition_ast
 }
 
