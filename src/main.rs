@@ -10,7 +10,7 @@ fn main() {
     // debug_print_tokens(&tokens);
 
     let ast: Box<ast::ASTNode> = ast::generate_ast(tokens, "/home/raphael/Development/Quirk/test.qk");
-
+    
     debug_print_ast(&ast);
 }
 

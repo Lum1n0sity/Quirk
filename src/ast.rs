@@ -322,6 +322,54 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 continue;
             }
+            
+            if token.token_type == TokenType::KeywordWhile {
+                let mut while_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut condition_tokens: Vec<&Token> = Vec::new();
+                
+                let mut j: usize = i + 1;
+                while j < tokens.len() && tokens[j].token_type != TokenType::EOL {
+                    condition_tokens.push(&tokens[j]);
+                    j += 1;
+                }
+
+                if j < tokens.len() {
+                    i = j;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Unexpected EOF after while-condition",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+                
+                while_init.children = generate_condition_ast(condition_tokens, file_path);
+                
+                let last_child: &&Rc<RefCell<Box<ASTNode>>> = &while_init.children.last().unwrap();
+                
+                if (**last_child).borrow().token_type != TokenType::PunctuationBraceOpen {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Condition initialization: Missing '{'",
+                        tokens[i].line,
+                        tokens[i].column
+                    ).with_file(file_path).panic();
+                }
+                
+                current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(while_init)));
+
+                let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
+                let code_block: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token))));
+
+                let code_block_clone: Rc<RefCell<Box<ASTNode>>> = Rc::clone(&code_block);
+
+                current_parent_.borrow_mut().children.push(code_block);
+
+                current_parent_ = code_block_clone;
+
+                continue;
+            }
         }
 
         if token.token_type == TokenType::Identifier{
@@ -360,7 +408,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 current_parent_.borrow_mut().children.push(function_call.unwrap());
                 continue;
-            }
+            }                                        
         }
 
         i += 1;
