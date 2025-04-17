@@ -40,8 +40,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     while i < tokens.len() {
         let token: &Token = &tokens[i];
 
-        println!("{:?}", token);
-
         // Update scope if token is a }
         if token.token_type == TokenType::PunctuationBraceClose {
             let new_current_parent = pop_current_parent(&root, &current_parent_, file_path);
@@ -370,6 +368,53 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 continue;
             }
+            
+            if token.token_type == TokenType::KeywordFor {
+                let mut for_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut condition_tokens: Vec<&Token> = Vec::new();
+                
+                let mut j: usize = i;
+                while i < tokens.len() && tokens[j].token_type != TokenType::EOL {
+                    condition_tokens.push(&tokens[j]);
+                    j += 1;
+                }
+                
+                if j < tokens.len() {
+                    i = j;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Unexpected EOF after for-condition",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+                                
+                for_init.children = generate_for_loop_condition_ast(condition_tokens, file_path, tokens[i].line);
+                
+                let last_child: &&Rc<RefCell<Box<ASTNode>>> = &for_init.children.last().unwrap();
+                if (**last_child).borrow().token_type != TokenType::PunctuationBraceOpen {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Condition initialization: Missing '{'",
+                        tokens[i].line,
+                        tokens[i].column
+                    ).with_file(file_path).panic();
+                }
+
+                current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(for_init)));
+
+                let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
+                let code_block: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token))));
+
+                let code_block_clone: Rc<RefCell<Box<ASTNode>>> = Rc::clone(&code_block);
+
+                current_parent_.borrow_mut().children.push(code_block);
+
+                current_parent_ = code_block_clone;
+
+                continue;
+            }
         }
 
         if token.token_type == TokenType::Identifier{
@@ -453,9 +498,36 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     }
 }
 
-// fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
-//        
-// }
+fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u32) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
+    let mut condition_ast: Vec<Rc<RefCell<Box<ASTNode>>>> = Vec::new();
+    
+    if tokens.is_empty() {
+      let _err = Err::new(
+          ErrorType::Syntax,
+          "Missing condtion",
+          line,
+           0
+      ).with_file(file_path).panic();
+    }
+    
+    let mut prev_token: &Token = tokens[0];
+    
+    for token in tokens {
+        if prev_token.token_type == TokenType::Identifier && token.token_type == TokenType::OperatorIncrease || token.token_type == TokenType::OperatorDecrease {
+            let node: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(prev_token))));
+            node.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
+            condition_ast.push(node);
+        } else {
+            let node: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
+            condition_ast.push(node);
+        }
+        
+        prev_token = token;
+        
+    }
+    
+    condition_ast
+}
 
 /// Generates an Abstract Syntax Tree (AST) from a condition.
 ///
