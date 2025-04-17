@@ -398,6 +398,29 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         token.column
                     ).with_file(file_path).panic();
                 }
+                
+                continue;
+            }
+            
+            if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::OperatorIncrease || tokens[i + 1].token_type == TokenType::OperatorDecrease {
+                let identifier_init: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
+                
+                identifier_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i + 1])))));
+                
+                i += 2;
+                
+                if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
+                    identifier_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
+                    current_parent_.borrow_mut().children.push(identifier_init);
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Missing semicolon",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+                
                 continue;
             }
 
@@ -430,6 +453,24 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     }
 }
 
+// fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
+//        
+// }
+
+/// Generates an Abstract Syntax Tree (AST) from a condition.
+///
+/// # Parameters
+///
+/// - `tokens`: A vector of references to `Token`s representing the condition.
+/// - `file_path`: The path of the file the condition is in.
+///
+/// # Returns
+///
+/// A vector of `Rc<RefCell<Box<ASTNode>>>` representing the condition in the AST.
+///
+/// # Errors
+///
+/// If `tokens` is empty, a syntax error is triggered, indicating that the condition is missing.
 fn generate_condition_ast(tokens: Vec<&Token>, file_path: &str) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
     let mut condition_ast: Vec<Rc<RefCell<Box<ASTNode>>>> = Vec::new();
 
