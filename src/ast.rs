@@ -244,7 +244,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
             }
 
 
-            if token.token_type == TokenType::KeywordElseIf {
+            if token.token_type == TokenType::KeywordElIf {
                 let mut elif_init:Box<ASTNode> = Box::new(ASTNode::new(token));
                 let mut condition_tokens: Vec<&Token> = Vec::new();
 
@@ -414,6 +414,24 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 current_parent_ = code_block_clone;
 
                 continue;
+            }
+            
+            if token.token_type == TokenType::KeywordBreak || token.token_type == TokenType::KeywordContinue {
+                let node: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
+
+                i += 1;
+                
+                if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
+                    node.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
+                    current_parent_.borrow_mut().children.push(node);
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Missing semicolon",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
             }
         }
 
