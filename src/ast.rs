@@ -67,7 +67,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     j += 1;
                 }
 
-                if i < tokens.len() {
+                if j < tokens.len() {
                     i = j;
                 } else {
                     let _err = Err::new(
