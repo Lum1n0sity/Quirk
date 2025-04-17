@@ -433,6 +433,44 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     ).with_file(file_path).panic();
                 }
             }
+            
+            if token.token_type == TokenType::KeywordOut {
+                let mut out_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut out_tokens: Vec<&Token> = Vec::new();
+
+                let mut j: usize = i + 1;
+                while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon && tokens[j].token_type != TokenType::EOL {
+                    out_tokens.push(&tokens[j]);
+                    j += 1;
+                }
+                
+                if j < tokens.len() {
+                    i = j;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Unexpected EOF after out",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+
+                out_init.children = generate_out_ast(out_tokens, file_path, token.line);
+                
+                if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
+                    out_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
+                    current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(out_init)));
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Missing semicolon",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+                
+                continue;
+            }
         }
 
         if token.token_type == TokenType::Identifier{
@@ -516,6 +554,40 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     }
 }
 
+fn generate_out_ast(tokens: Vec<&Token>, file_path: &str, line: u32) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
+    let mut out_params: Vec<Rc<RefCell<Box<ASTNode>>>> = Vec::new();
+    
+    if tokens.is_empty() {
+        let _err = Err::new(
+            ErrorType::Syntax,
+            "Missing out params",
+            line,
+            0
+        ).with_file(file_path).panic();
+    }
+    
+    for token in tokens {
+        out_params.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
+    }
+    
+    out_params
+}
+
+/// Generates an Abstract Syntax Tree (AST) from a for loop condition.
+    ///
+    /// # Parameters
+    ///
+    /// - `tokens`: A vector of references to `Token`s representing the condition.
+    /// - `file_path`: The path of the file the condition is in.
+    /// - `line`: The line number of the condition.
+    ///
+    /// # Returns
+    ///
+    /// A vector of `Rc<RefCell<Box<ASTNode>>>` representing the condition in the AST.
+    ///
+    /// # Errors
+    ///
+    /// If `tokens` is empty, a syntax error is triggered, indicating that the condition is missing.
 fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u32) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
     let mut condition_ast: Vec<Rc<RefCell<Box<ASTNode>>>> = Vec::new();
 
