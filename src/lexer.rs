@@ -12,8 +12,8 @@ use crate::error_handler::*;
 pub enum TokenType {
     // Keywords
     KeywordFn, KeywordImmut, KeywordLet, KeywordHeap, KeywordFree, KeywordReturn,
-    KeywordConstruct, KeywordIf, KeywordElse, KeywordElseIf, KeywordFor, KeywordWhile, KeywordBreak,
-    KeywordContinue, KeywordImport, KeywordAsync, KeywordAwait, KeywordCase, KeywordEnum,
+    KeywordIf, KeywordElse, KeywordElIf, KeywordFor, KeywordWhile, KeywordBreak,
+    KeywordContinue, KeywordConstruct, KeywordImport, KeywordAsync, KeywordAwait, KeywordCase, KeywordEnum,
     KeywordClass, KeywordStruct, KeywordOut, KeywordIsOk, KeywordIsErr, KeywordNew,
     // Data Types
     DataTypeInt, DataTypeUint, DataTypeInt8, DataTypeUint8, DataTypeInt16, DataTypeUint16,
@@ -227,7 +227,7 @@ fn match_keyword(word: &str) -> Option<TokenType> {
         "return" => Some(TokenType::KeywordReturn),
         "construct" => Some(TokenType::KeywordConstruct),
         "if" => Some(TokenType::KeywordIf),
-        "elif" => Some(TokenType::KeywordElseIf),
+        "elif" => Some(TokenType::KeywordElIf),
         "else" => Some(TokenType::KeywordElse),
         "for" => Some(TokenType::KeywordFor),
         "while" => Some(TokenType::KeywordWhile),
