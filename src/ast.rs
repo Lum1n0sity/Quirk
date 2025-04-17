@@ -207,7 +207,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     j += 1;
                 }
 
-                if i < tokens.len() {
+                if j < tokens.len() {
                     i = j;
                 } else {
                     let _err = Err::new(
@@ -256,7 +256,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     j += 1;
                 }
 
-                if i < tokens.len() {
+                if j < tokens.len() {
                     i = j;
                 } else {
                     let _err = Err::new(
@@ -297,10 +297,10 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
             if token.token_type == TokenType::KeywordElse {
                 let mut else_init:Box<ASTNode> = Box::new(ASTNode::new(token));
 
-                if i + 1 < tokens.len() && tokens[i + 1].token_type != TokenType::PunctuationBraceOpen {
+                if i + 1 >= tokens.len() || tokens[i + 1].token_type != TokenType::PunctuationBraceOpen {
                     let _err = Err::new(
                         ErrorType::Syntax,
-                        "Condition initialization: Missing '{'",
+                        "Else statement: Missing '{'",
                         tokens[i].line,
                         tokens[i].column
                     ).with_file(file_path).panic();
