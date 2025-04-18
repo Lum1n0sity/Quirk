@@ -14,7 +14,7 @@ pub enum TokenType {
     KeywordFn, KeywordImmut, KeywordLet, KeywordHeap, KeywordFree, KeywordReturn,
     KeywordIf, KeywordElse, KeywordElIf, KeywordFor, KeywordWhile, KeywordBreak,
     KeywordContinue, KeywordConstruct, KeywordImport, KeywordAsync, KeywordAwait, KeywordEnum,
-    KeywordClass, KeywordStruct, KeywordOut, KeywordIsOk, KeywordIsErr, KeywordNew,
+    KeywordClass, KeywordStruct, KeywordOut, KeywordNew,
     // Data Types
     DataTypeInt, DataTypeUint, DataTypeInt8, DataTypeUint8, DataTypeInt16, DataTypeUint16,
     DataTypeInt32, DataTypeUint32, DataTypeInt64, DataTypeUint64, DataTypeInt128, DataTypeUint128,
@@ -46,6 +46,36 @@ pub struct Token {
     pub column: u32,
 }
 
+/// Reads and tokenizes a Quirk source file (.qk), generating a vector of Tokens.
+///
+/// # Arguments
+///
+/// * `file_path` - A string slice containing the path to the .qk source file
+///
+/// # Returns
+///
+/// * `Vec<Token>` - Returns a vector of Token structs, each containing:
+///   - token_type: The classified TokenType
+///   - value: The actual text value of the token
+///   - line: Line number where the token appears
+///   - column: Column number where the token appears
+///
+/// # Errors
+///
+/// Returns an error if:
+/// - The file doesn't have a .qk extension
+/// - The file cannot be read
+/// - The file contains invalid tokens
+///
+/// # Example
+///
+/// ```
+/// let tokens = get_tokens("example.qk");
+/// match tokens {
+///     Ok(token_vec) => println!("Successfully tokenized file"),
+///     Err(e) => println!("Error tokenizing file: {}", e),
+/// }
+/// ```
 pub fn get_tokens(file_path: &str) -> Vec<Token> {
     let path = Path::new(file_path);
 
@@ -80,9 +110,9 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
         if c != '\n' && !c.is_whitespace() {
             column += 1;
         }
- 
+
         if c == '\n' {
-            tokens.push(Token{ token_type: TokenType::EOL, value: "\n".to_string(), line, column});            
+            tokens.push(Token{ token_type: TokenType::EOL, value: "\n".to_string(), line, column});
             line += 1;
             column = 1;
         }
@@ -210,6 +240,26 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
     tokens
 }
 
+/// Classifies a word into its appropriate TokenType based on its content and format.
+///
+/// # Arguments
+///
+/// * `word` - A string slice that holds the word to be classified
+///
+/// # Returns
+///
+/// * `TokenType` - Returns the appropriate TokenType based on the word's content:
+///   - Keywords (if, else, while, etc.)
+///   - Data types (int, float, string, etc.)
+///   - Literals (numbers, strings, booleans)
+///   - Identifiers (variable names, function names)
+///
+/// # Example
+///
+/// ```
+/// let token_type = classify_word("42");
+/// assert_eq!(token_type, TokenType::IntegerLiteral);
+/// ```
 fn classify_word(word: &str) -> TokenType {
     match_keyword(word)
         .or_else(|| match_literal(word))
@@ -217,6 +267,22 @@ fn classify_word(word: &str) -> TokenType {
         .unwrap()
 }
 
+/// Matches a given word against predefined keywords in the language and returns the corresponding TokenType.
+///
+/// # Arguments
+///
+/// * `word` - A string slice that holds the word to be matched against keywords
+///
+/// # Returns
+///
+/// * `TokenType` - Returns the matching keyword TokenType if found, otherwise returns TokenType::Identifier
+///
+/// # Example
+///
+/// ```
+/// let token_type = match_keyword("if");
+/// assert_eq!(token_type, TokenType::KeywordIf);
+/// ```
 fn match_keyword(word: &str) -> Option<TokenType> {
     match word {
         "fn" => Some(TokenType::KeywordFn),
@@ -240,8 +306,6 @@ fn match_keyword(word: &str) -> Option<TokenType> {
         "class" => Some(TokenType::KeywordClass),
         "struct" => Some(TokenType::KeywordStruct),
         "out" => Some(TokenType::KeywordOut),
-        "is_ok" => Some(TokenType::KeywordIsOk),
-        "is_err" => Some(TokenType::KeywordIsErr),
         "new" => Some(TokenType::KeywordNew),
         // Data Types
         "int" => Some(TokenType::DataTypeInt),
@@ -267,6 +331,29 @@ fn match_keyword(word: &str) -> Option<TokenType> {
     }
 }
 
+/// Attempts to classify a string as a literal token type.
+///
+/// # Arguments
+/// * `word` - A string slice to be classified
+///
+/// # Returns
+/// * `Option<TokenType>` - Some(TokenType) if the word matches a literal pattern,
+///                        None if no literal pattern is matched
+///
+/// # Examples
+/// ```
+/// assert_eq!(match_literal("123"), Some(TokenType::IntegerLiteral));
+/// assert_eq!(match_literal("3.14"), Some(TokenType::FloatLiteral));
+/// assert_eq!(match_literal("true"), Some(TokenType::BooleanLiteral));
+/// assert_eq!(match_literal("hello"), None);
+/// ```
+///
+/// # Description
+/// Checks the input string in the following order:
+/// 1. Attempts to parse as an integer (i64)
+/// 2. Attempts to parse as a float (f64)
+/// 3. Checks if it's a boolean literal ("true" or "false")
+/// Returns None if none of these patterns match.
 fn match_literal(word: &str) -> Option<TokenType> {
     if word.parse::<i64>().is_ok() { return Some(TokenType::IntegerLiteral) }
     if word.parse::<f64>().is_ok() { return Some(TokenType::FloatLiteral) }
@@ -274,6 +361,21 @@ fn match_literal(word: &str) -> Option<TokenType> {
     None
 }
 
+/// Matches and classifies operator tokens from a character slice.
+///
+/// # Arguments
+/// * `chars` - A slice of characters to be analyzed
+///
+/// # Returns
+/// * A tuple containing:
+///   - TokenType: The type of operator token identified
+///   - String: The string representation of the operator
+///
+/// # Description
+/// First attempts to match two-character operators (==, !=, >=, etc.).
+/// If no two-character operator is matched, falls back to single-character
+/// operators (+, -, *, etc.). Returns Unknown token type for unrecognized
+/// operators.
 fn match_operator(chars: &[char]) -> (TokenType, String) {
     let op_str = chars.iter().take(2).collect::<String>();
     match op_str.as_str() {
@@ -290,7 +392,7 @@ fn match_operator(chars: &[char]) -> (TokenType, String) {
         "--" => return (TokenType::OperatorDecrease, "--".to_string()),
         _ => {},
     }
-
+    
     let op_str = chars[0].to_string();
     match op_str.as_str() {
         "+" => (TokenType::OperatorPlus, "+".to_string()),
@@ -310,6 +412,15 @@ fn match_operator(chars: &[char]) -> (TokenType, String) {
     }
 }
 
+/// Matches a string of characters against a set of punctuation tokens.
+///
+/// # Parameters
+///
+/// - `chars`: The string of characters to match.
+///
+/// # Returns
+///
+/// A `TokenType` representing the matched punctuation token, or `None` if no match is found.
 fn match_punctuation(chars: &str) -> Option<TokenType> {
     match chars {
         "(" => Some(TokenType::PunctuationParenOpen),
