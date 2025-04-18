@@ -243,7 +243,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 continue;
             }
 
-
             if token.token_type == TokenType::KeywordElIf {
                 let mut elif_init:Box<ASTNode> = Box::new(ASTNode::new(token));
                 let mut condition_tokens: Vec<&Token> = Vec::new();
@@ -415,12 +414,12 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 continue;
             }
-            
+
             if token.token_type == TokenType::KeywordBreak || token.token_type == TokenType::KeywordContinue {
                 let node: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
 
                 i += 1;
-                
+
                 if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
                     node.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
                     current_parent_.borrow_mut().children.push(node);
@@ -433,7 +432,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     ).with_file(file_path).panic();
                 }
             }
-            
+
             if token.token_type == TokenType::KeywordOut {
                 let mut out_init: Box<ASTNode> = Box::new(ASTNode::new(token));
                 let mut out_tokens: Vec<&Token> = Vec::new();
@@ -443,7 +442,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     out_tokens.push(&tokens[j]);
                     j += 1;
                 }
-                
+
                 if j < tokens.len() {
                     i = j;
                 } else {
@@ -456,7 +455,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 }
 
                 out_init.children = generate_out_ast(out_tokens, file_path, token.line);
-                
+
                 if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
                     out_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
                     current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(out_init)));
@@ -468,8 +467,164 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         token.column
                     ).with_file(file_path).panic();
                 }
-                
+
                 continue;
+            }
+
+            if token.token_type == TokenType::KeywordClass {
+                let mut class_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut class_tokens: Vec<&Token> = Vec::new();
+
+                let mut j: usize = i + 1;
+                while j < tokens.len() && tokens[j].token_type != TokenType::EOL {
+                    class_tokens.push(&tokens[j]);
+                    j += 1;
+                }
+
+                if j < tokens.len() {
+                    i = j;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Unexpected EOF after class",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+
+                for token in class_tokens {
+                    class_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
+                }
+
+                let last_child: &&Rc<RefCell<Box<ASTNode>>> = &class_init.children.last().unwrap();
+                if (**last_child).borrow().token_type != TokenType::PunctuationBraceOpen {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Class initialization: Missing '{'",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+
+                current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(class_init)));
+                let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
+                let code_block: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token))));
+
+                let code_block_clone: Rc<RefCell<Box<ASTNode>>> = Rc::clone(&code_block);
+                current_parent_.borrow_mut().children.push(code_block);
+
+                current_parent_ = code_block_clone;
+
+                continue;
+            }
+
+            if token.token_type == TokenType::KeywordConstruct {
+                let mut construct_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut construct_tokens: Vec<&Token> = Vec::new();
+
+                let mut is_new_object: bool = false;
+
+                let mut j: usize = i + 1;
+                while j < tokens.len() && tokens[j].token_type != TokenType::EOL {
+                    construct_tokens.push(&tokens[j]);
+                    j += 1;
+
+                    if j < tokens.len() && tokens[j].token_type == TokenType::OperatorSemicolon {
+                        is_new_object = true;
+                        break;
+                    }
+                }
+
+                if j < tokens.len() {
+                    i = j;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Unexpected EOF after construct",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+
+                for token in construct_tokens {
+                    construct_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
+                }
+
+                if !is_new_object {
+                    let last_child: &&Rc<RefCell<Box<ASTNode>>> = &construct_init.children.last().unwrap();
+                    if (**last_child).borrow().token_type != TokenType::PunctuationBraceOpen {
+                        let _err = Err::new(
+                            ErrorType::Syntax,
+                            "Class initialization: Missing '{'",
+                            token.line,
+                            token.column
+                        ).with_file(file_path).panic();
+                    }
+
+                    current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(construct_init)));
+
+                    let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
+                    let code_block: Rc<RefCell<Box<ASTNode>>> = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token))));
+
+                    let code_block_clone: Rc<RefCell<Box<ASTNode>>> = Rc::clone(&code_block);
+                    current_parent_.borrow_mut().children.push(code_block);
+
+                    current_parent_ = code_block_clone;
+                } else {
+                    let last_child: &&Rc<RefCell<Box<ASTNode>>> = &construct_init.children.last().unwrap();
+                    if (**last_child).borrow().token_type != TokenType::OperatorSemicolon {
+                        let _err = Err::new(
+                            ErrorType::Syntax,
+                            "Missing semicolon",
+                            token.line,
+                            token.column
+                        ).with_file(file_path).panic();
+                    }
+
+                    current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(construct_init)));
+                }
+
+                continue;
+            }
+
+            if token.token_type == TokenType::KeywordThis {
+                let mut this_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut this_tokens: Vec<&Token> = Vec::new();
+
+                let mut j: usize = i + 1;
+                while j < tokens.len() && tokens[j].token_type != TokenType::OperatorSemicolon && tokens[j].token_type != TokenType::EOL {
+                    this_tokens.push(&tokens[j]);
+                    j += 1;
+                }
+
+                if j < tokens.len() {
+                    i = j;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Unexpected EOF after this",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
+
+                this_init.children = generate_ast_variable(this_tokens, file_path);
+
+                if i < tokens.len() && tokens[i].token_type == TokenType::OperatorSemicolon {
+                    this_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
+                    i += 1;
+                    
+                    current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(this_init)));
+                    
+                    continue;
+                } else {
+                    let _err = Err::new(
+                        ErrorType::Syntax,
+                        "Missing semicolon",
+                        token.line,
+                        token.column
+                    ).with_file(file_path).panic();
+                }
             }
         }
 
@@ -556,7 +711,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
 fn generate_out_ast(tokens: Vec<&Token>, file_path: &str, line: u32) -> Vec<Rc<RefCell<Box<ASTNode>>>> {
     let mut out_params: Vec<Rc<RefCell<Box<ASTNode>>>> = Vec::new();
-    
+
     if tokens.is_empty() {
         let _err = Err::new(
             ErrorType::Syntax,
@@ -565,11 +720,11 @@ fn generate_out_ast(tokens: Vec<&Token>, file_path: &str, line: u32) -> Vec<Rc<R
             0
         ).with_file(file_path).panic();
     }
-    
+
     for token in tokens {
         out_params.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
     }
-    
+
     out_params
 }
 
