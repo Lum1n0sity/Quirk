@@ -13,7 +13,7 @@ pub enum TokenType {
     // Keywords
     KeywordFn, KeywordImmut, KeywordLet, KeywordHeap, KeywordFree, KeywordReturn,
     KeywordIf, KeywordElse, KeywordElIf, KeywordFor, KeywordWhile, KeywordBreak,
-    KeywordContinue, KeywordConstruct, KeywordImport, KeywordAsync, KeywordAwait, KeywordCase, KeywordEnum,
+    KeywordContinue, KeywordConstruct, KeywordImport, KeywordAsync, KeywordAwait, KeywordEnum,
     KeywordClass, KeywordStruct, KeywordOut, KeywordIsOk, KeywordIsErr, KeywordNew,
     // Data Types
     DataTypeInt, DataTypeUint, DataTypeInt8, DataTypeUint8, DataTypeInt16, DataTypeUint16,
@@ -232,7 +232,6 @@ fn match_keyword(word: &str) -> Option<TokenType> {
         "for" => Some(TokenType::KeywordFor),
         "while" => Some(TokenType::KeywordWhile),
         "break" => Some(TokenType::KeywordBreak),
-        "case" => Some(TokenType::KeywordCase),
         "continue" => Some(TokenType::KeywordContinue),
         "import" => Some(TokenType::KeywordImport),
         "async" => Some(TokenType::KeywordAsync),
