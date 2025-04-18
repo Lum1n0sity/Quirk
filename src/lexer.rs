@@ -13,8 +13,8 @@ pub enum TokenType {
     // Keywords
     KeywordFn, KeywordImmut, KeywordLet, KeywordHeap, KeywordFree, KeywordReturn,
     KeywordIf, KeywordElse, KeywordElIf, KeywordFor, KeywordWhile, KeywordBreak,
-    KeywordContinue, KeywordConstruct, KeywordImport, KeywordAsync, KeywordAwait, KeywordEnum,
-    KeywordClass, KeywordStruct, KeywordOut, KeywordNew,
+    KeywordContinue, KeywordOut,  KeywordEnum, KeywordStruct,
+    KeywordClass, KeywordConstruct,  KeywordThis, KeywordNew, KeywordImport, KeywordAsync, KeywordAwait,
     // Data Types
     DataTypeInt, DataTypeUint, DataTypeInt8, DataTypeUint8, DataTypeInt16, DataTypeUint16,
     DataTypeInt32, DataTypeUint32, DataTypeInt64, DataTypeUint64, DataTypeInt128, DataTypeUint128,
@@ -307,6 +307,7 @@ fn match_keyword(word: &str) -> Option<TokenType> {
         "struct" => Some(TokenType::KeywordStruct),
         "out" => Some(TokenType::KeywordOut),
         "new" => Some(TokenType::KeywordNew),
+        "this" => Some(TokenType::KeywordThis),
         // Data Types
         "int" => Some(TokenType::DataTypeInt),
         "uint" => Some(TokenType::DataTypeUint),
