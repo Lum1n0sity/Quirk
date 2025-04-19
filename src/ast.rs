@@ -497,9 +497,9 @@ fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u
     }
 
     let mut prev_token: &Token = tokens[0];
-
+    
     for token in tokens {
-        if prev_token.token_type == TokenType::Identifier && token.token_type == TokenType::OperatorIncrease || token.token_type == TokenType::OperatorDecrease {
+        if prev_token.token_type == TokenType::Identifier && (token.token_type == TokenType::OperatorIncrease || token.token_type == TokenType::OperatorDecrease) {
             let node: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(prev_token))));
             node.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
             condition_ast.push(node);
