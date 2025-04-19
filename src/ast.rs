@@ -39,6 +39,18 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
     let mut i: usize = 0;
 
+    /// Checks if the token at index `i` matches the expected `TokenType`.
+    /// If so, adds it to `node_to_add`, then appends `node_to_add` to the `current_parent` node.
+    /// Otherwise, panics with a syntax error.
+    ///
+    /// # Arguments
+    /// * `i` - Current index in the token list.
+    /// * `tokens` - Vector of all tokens.
+    /// * `expected` - The expected `TokenType` to match.
+    /// * `node_to_add` - AST node to which the token will be added as a child.
+    /// * `current_parent` - The current parent node in the AST.
+    /// * `file_path` - Path to the source file (used for error reporting).
+    /// * `error_msg` - Error message to display if the token doesn't match.
     let expect_token = |i: usize, tokens: &Vec<Token>, expected: TokenType, node_to_add: Node, current_parent: &Node, file_path: &str, error_msg: &str| {
         if i < tokens.len() && tokens[i].token_type == expected {
             node_to_add.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
@@ -55,7 +67,17 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 .panic();
         }
     };
-    
+
+    /// Checks whether the last child of the given AST node matches the expected `TokenType`.
+    /// If not, panics with a syntax error.
+    ///
+    /// # Arguments
+    /// * `node_init` - The AST node whose last child will be checked.
+    /// * `expected` - The expected `TokenType` for the last child.
+    /// * `file_path` - Path to the source file (used for error reporting).
+    /// * `error_msg` - Error message to display if the check fails.
+    /// * `line` - Line number for error reporting.
+    /// * `column` - Column number for error reporting.
     let check_last_child = |node_init: &Box<ASTNode>, expected: TokenType, file_path: &str, error_msg: &str, line: u32, column: u32| {
         let last_child: &&Node = &node_init.children.last().unwrap();
         if (**last_child).borrow().token_type != expected {
@@ -67,7 +89,17 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
             ).with_file(file_path).panic();
         }
     };
-    
+
+    /// Creates a new `CodeBlock` AST node at the given token index and adds it as a child  
+    /// to the provided `current_parent`. Returns the newly created code block node to become  
+    /// the new parent for subsequent child nodes.
+    ///
+    /// # Arguments
+    /// * `i` - Index of the current token used to create the `CodeBlock`.
+    /// * `current_parent` - The current parent node to which the code block will be added.
+    ///
+    /// # Returns
+    /// A new `Node` representing the generated `CodeBlock`, to be used as the new parent node.
     let generate_code_block = |i: usize, current_parent: &Node| -> Node {
         let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
         let code_block: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token))));
@@ -77,7 +109,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
         current_parent.borrow_mut().children.push(code_block);
 
         println!("{:?}", code_block_clone);
-        
+
         code_block_clone
     };
 
@@ -128,14 +160,14 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     TokenType::KeywordThis => error_msg_ast = "'this' is empty!",
                     _ => error_msg_ast = "Invalid input!"
                 }
-                
+
                 let mut node_init: Box<ASTNode> = Box::new(ASTNode::new(token));
-                
+
                 let (node_tokens, new_i) = check_tokens_until(&i, &tokens, &[TokenType::OperatorSemicolon, TokenType::EOL], file_path, error_msg_tokens);
                 i = new_i;
-                
+
                 node_init.children = generate_ast_from_tokens(node_tokens, file_path, error_msg_ast);
-                
+
                 expect_token(i, &tokens, TokenType::OperatorSemicolon, Rc::new(RefCell::new(node_init)), &current_parent_, file_path, "Missing semicolon")
             }
 
@@ -149,7 +181,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     TokenType::KeywordClass => error_msg_tokens = "Unexpected EOF after class",
                     _ => error_msg_tokens = "Unexpected EOF"
                 }
-                
+
                 let mut error_msg_ast: &str = "";
                 match token.token_type {
                     TokenType::KeywordFn => error_msg_ast = "Function declaration is empty!",
@@ -159,23 +191,23 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     TokenType::KeywordClass => error_msg_ast = "Class declaration is empty!",
                     _ => error_msg_ast = "Invalid input!"
                 }
-                
+
                 let mut node_init: Box<ASTNode> = Box::new(ASTNode::new(token));
-                
+
                 let (node_tokens, new_i) = check_tokens_until(&i, &tokens, &[TokenType::EOL], file_path, error_msg_tokens);
                 i = new_i;
-                
+
                 node_init.children = generate_ast_from_tokens(node_tokens, file_path, error_msg_ast);
-                
+
                 check_last_child(&node_init, TokenType::PunctuationBraceOpen, file_path, "Missing '{'", tokens[i].line, tokens[i].column);
-                
+
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(node_init)));
-                
-                current_parent_ = generate_code_block(i, &current_parent_); 
-                
+
+                current_parent_ = generate_code_block(i, &current_parent_);
+
                 continue;
             }
-            
+
             if token.token_type == TokenType::KeywordFor {
                 let mut for_init: Box<ASTNode> = Box::new(ASTNode::new(token));
 
@@ -214,7 +246,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 continue;
             }
-            
+
             if token.token_type == TokenType::KeywordBreak || token.token_type == TokenType::KeywordContinue {
                 let node: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
                 i += 1;
@@ -325,6 +357,17 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     }
 }
 
+/// Attempts to pop the current parent node, returning the parent of the current_parent.
+///
+/// # Arguments
+/// * `root` - The root node of the AST
+/// * `current_parent` - The current parent node to pop
+/// * `file_path` - The path to the source file for error reporting
+///
+/// # Panics
+/// * If attempting to change scope at root level
+/// * If unable to borrow current_parent
+/// * If unable to find parent of current_parent
 fn pop_current_parent(root: &Node, current_parent: &Node, file_path: &str) -> Node {
     if Rc::ptr_eq(root, current_parent) {
         let _err = Err::new(
@@ -367,6 +410,14 @@ fn pop_current_parent(root: &Node, current_parent: &Node, file_path: &str) -> No
     }
 }
 
+/// Recursively searches for the parent node of the given current_parent node.
+///
+/// # Arguments
+/// * `current` - The current node to search in
+/// * `current_parent` - The node whose parent we're looking for
+///
+/// # Returns
+/// * `Option<Node>` - The parent node if found, None otherwise
 fn find_parent_of_current_parent(current: &Node, current_parent: &Node) -> Option<Node> {
     let current_borrow = current.borrow();
 
@@ -383,6 +434,20 @@ fn find_parent_of_current_parent(current: &Node, current_parent: &Node) -> Optio
     None
 }
 
+/// Checks tokens until a token of an allowed type is encountered.
+///
+/// # Arguments
+/// * `i` - Current token index
+/// * `tokens` - Vector of tokens to check
+/// * `allowed_types` - Slice of allowed token types to stop at
+/// * `file_path` - Path to the source file for error reporting
+/// * `error_msg` - Error message to display if end of tokens is reached
+///
+/// # Returns
+/// * Tuple containing collected tokens and the new index position
+///
+/// # Panics
+/// * If end of tokens is reached before finding an allowed token type
 fn check_tokens_until<'a>(i: &usize, tokens: &'a Vec<Token>, allowed_types: &'a [TokenType], file_path: &str, error_msg: &str) -> (Vec<&'a Token>, usize) {
     let mut output_tokens: Vec<&Token> = Vec::new();
 
@@ -407,6 +472,18 @@ fn check_tokens_until<'a>(i: &usize, tokens: &'a Vec<Token>, allowed_types: &'a 
     }
 }
 
+/// Generates AST nodes for a for-loop condition.
+///
+/// # Arguments
+/// * `tokens` - Vector of tokens representing the loop condition
+/// * `file_path` - Path to the source file for error reporting
+/// * `line` - Line number for error reporting
+///
+/// # Returns
+/// * Vector of nodes representing the loop condition AST
+///
+/// # Panics
+/// * If the condition tokens are empty
 fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u32) -> Vec<Node> {
     let mut condition_ast: Vec<Node> = Vec::new();
 
@@ -438,6 +515,18 @@ fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u
     condition_ast
 }
 
+/// Generates an AST node for a function call, including its arguments.
+///
+/// # Arguments
+/// * `tokens` - Vector of all tokens
+/// * `i` - Current token index
+/// * `file_path` - Path to the source file for error reporting
+///
+/// # Returns
+/// * Tuple containing the optional function call node and the new index position
+///
+/// # Panics
+/// * If semicolon is missing after the function call
 fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) -> (Option<Node>, usize){
     let function_call: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i]))));
     let mut function_call_tokens: Vec<&Token> = Vec::new();
@@ -476,6 +565,18 @@ fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) ->
     }
 }
 
+/// Generates AST nodes from a vector of tokens.
+///
+/// # Arguments
+/// * `tokens` - Vector of tokens to convert to AST nodes
+/// * `file_path` - Path to the source file for error reporting
+/// * `error_msg` - Error message to display if tokens vector is empty
+///
+/// # Returns
+/// * Vector of AST nodes
+///
+/// # Panics
+/// * If the tokens vector is empty
 fn generate_ast_from_tokens(tokens: Vec<&Token>, file_path: &str, error_msg: &str) -> Vec<Node> {
     let mut ast: Vec<Node> = Vec::new();
 
