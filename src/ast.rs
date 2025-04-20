@@ -1,4 +1,5 @@
 #![allow(unused_assignments)]
+#![allow(unused_doc_comments)]
 
 use crate::lexer::{Token, TokenType};
 use crate::error_handler::*;
@@ -129,10 +130,10 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
         let keyword_regex = Regex::new(r"^Keyword.*").unwrap();
 
         if keyword_regex.is_match(&current_token_type_str) {
-            if token.token_type == TokenType::KeywordReturn || token.token_type == TokenType::KeywordFree{
+            if token.token_type == TokenType::KeywordReturn{
                 let node_init: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
 
-                let (node_tokens, new_i) = check_tokens_until(&i, &tokens, &[TokenType::OperatorSemicolon, TokenType::EOL], file_path, if token.token_type == TokenType::KeywordReturn {"Unexpected EOF after return"} else {"Unexpected EOF after free()"});
+                let (node_tokens, new_i) = check_tokens_until(&i, &tokens, &[TokenType::OperatorSemicolon, TokenType::EOL], file_path, "Unexpected EOF after return");
                 i = new_i;
 
                 for token in node_tokens {
@@ -144,11 +145,10 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 continue;
             }
 
-            if token.token_type == TokenType::KeywordLet || token.token_type == TokenType::KeywordOut || token.token_type == TokenType::KeywordThis {
+            if token.token_type == TokenType::KeywordLet || token.token_type == TokenType::KeywordThis {
                 let mut error_msg_tokens: &str = "";
                 match token.token_type {
                     TokenType::KeywordLet => error_msg_tokens = "Unexpected EOF after variable initialization",
-                    TokenType::KeywordOut => error_msg_tokens = "Unexpected EOF after out()",
                     TokenType::KeywordThis => error_msg_tokens = "Unexpected EOF after this",
                     _ => error_msg_tokens = "Unexpected EOF"
                 }
@@ -156,7 +156,6 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 let mut error_msg_ast: &str = "";
                 match token.token_type {
                     TokenType::KeywordLet => error_msg_ast = "Variable declaration is empty!",
-                    TokenType::KeywordOut => error_msg_ast = "'out()' is empty!",
                     TokenType::KeywordThis => error_msg_ast = "'this' is empty!",
                     _ => error_msg_ast = "Invalid input!"
                 }

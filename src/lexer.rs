@@ -11,9 +11,9 @@ use crate::error_handler::*;
 #[derive(PartialEq, Debug, Clone, Display)]
 pub enum TokenType {
     // Keywords
-    KeywordFn, KeywordImmut, KeywordLet, KeywordHeap, KeywordFree, KeywordReturn,
+    KeywordFn, KeywordImmut, KeywordLet, KeywordHeap, KeywordReturn,
     KeywordIf, KeywordElse, KeywordElIf, KeywordFor, KeywordWhile, KeywordBreak,
-    KeywordContinue, KeywordOut,  KeywordEnum, KeywordStruct,
+    KeywordContinue, KeywordEnum, KeywordStruct,
     KeywordClass, KeywordConstruct,  KeywordThis, KeywordImport, KeywordAsync, KeywordAwait,
     // Data Types
     DataTypeInt, DataTypeUint, DataTypeInt8, DataTypeUint8, DataTypeInt16, DataTypeUint16,
@@ -289,7 +289,6 @@ fn match_keyword(word: &str) -> Option<TokenType> {
         "immut" => Some(TokenType::KeywordImmut),
         "let" => Some(TokenType::KeywordLet),
         "heap!" => Some(TokenType::KeywordHeap),
-        "free" => Some(TokenType::KeywordFree),
         "return" => Some(TokenType::KeywordReturn),
         "construct" => Some(TokenType::KeywordConstruct),
         "if" => Some(TokenType::KeywordIf),
@@ -305,7 +304,6 @@ fn match_keyword(word: &str) -> Option<TokenType> {
         "enum" => Some(TokenType::KeywordEnum),
         "class" => Some(TokenType::KeywordClass),
         "struct" => Some(TokenType::KeywordStruct),
-        "out" => Some(TokenType::KeywordOut),
         "this" => Some(TokenType::KeywordThis),
         // Data Types
         "int" => Some(TokenType::DataTypeInt),
