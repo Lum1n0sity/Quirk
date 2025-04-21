@@ -344,6 +344,7 @@ fn match_keyword(word: &str) -> Option<TokenType> {
 /// assert_eq!(match_literal("123"), Some(TokenType::IntegerLiteral));
 /// assert_eq!(match_literal("3.14"), Some(TokenType::FloatLiteral));
 /// assert_eq!(match_literal("true"), Some(TokenType::BooleanLiteral));
+/// assert_eq!(match_literal("None"), Some(TokenType::NoneLiteral));
 /// assert_eq!(match_literal("hello"), None);
 /// ```
 ///
@@ -352,6 +353,7 @@ fn match_keyword(word: &str) -> Option<TokenType> {
 /// 1. Attempts to parse as an integer (i64)
 /// 2. Attempts to parse as a float (f64)
 /// 3. Checks if it's a boolean literal ("true" or "false")
+/// 4. Checks if it's the None literal ("None")
 /// Returns None if none of these patterns match.
 fn match_literal(word: &str) -> Option<TokenType> {
     if word.parse::<i64>().is_ok() { return Some(TokenType::IntegerLiteral) }
