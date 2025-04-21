@@ -21,12 +21,12 @@ pub enum TokenType {
     DataTypeFloat, DataTypeFloat32, DataTypeFloat64, DataTypeString, DataTypeChar, DataTypeBool,
     DataTypeVoid,
     // Identifiers & Literals
-    Identifier, IntegerLiteral, FloatLiteral, StringLiteral, CharLiteral, BooleanLiteral,
+    Identifier, IntegerLiteral, FloatLiteral, StringLiteral, CharLiteral, BooleanLiteral, NoneLiteral,
     // Operators & Symbols
     OperatorPlus, OperatorMinus, OperatorStar, OperatorSlash, OperatorPercent,
     OperatorAssign, OperatorEqual, OperatorNotEqual, OperatorLess, OperatorGreater,
-    OperatorLessEqual, OperatorGreaterEqual, OperatorAnd, OperatorOr, OperatorNot,
-    OperatorSemicolon, OperatorArrow,
+    OperatorLessEqual, OperatorGreaterEqual, OperatorAnd, OperatorOr, OperatorNot, OperatorOptional, OperatorFallback,
+    OperatorSemicolon,
     OperatorPipe, OperatorAmpersand, OperatorTilde, OperatorCaret,
     OperatorIncrease, OperatorDecrease,
     // Punctuation
@@ -356,6 +356,7 @@ fn match_literal(word: &str) -> Option<TokenType> {
     if word.parse::<i64>().is_ok() { return Some(TokenType::IntegerLiteral) }
     if word.parse::<f64>().is_ok() { return Some(TokenType::FloatLiteral) }
     if word == "true" || word == "false" { return Some(TokenType::BooleanLiteral) }
+    if word == "None" { return Some(TokenType::NoneLiteral) }
     None
 }
 
@@ -383,11 +384,9 @@ fn match_operator(chars: &[char]) -> (TokenType, String) {
         "<=" => return (TokenType::OperatorLessEqual, "<=".to_string()),
         "&&" => return (TokenType::OperatorAnd, "&&".to_string()),
         "||" => return (TokenType::OperatorOr, "||".to_string()),
-        "->" => return (TokenType::OperatorArrow, "->".to_string()),
-        // "<<" => (TokenType::OperatorLeftShift),
-        // ">>" => (TokenType::OperatorRightShift),
         "++" => return (TokenType::OperatorIncrease, "++".to_string()),
         "--" => return (TokenType::OperatorDecrease, "--".to_string()),
+        "??" => return (TokenType::OperatorFallback, "??".to_string()),
         _ => {},
     }
     
@@ -403,6 +402,7 @@ fn match_operator(chars: &[char]) -> (TokenType, String) {
         "<" => (TokenType::OperatorLess, "<".to_string()),
         "!" => (TokenType::OperatorNot, "!".to_string()),
         "|" => (TokenType::OperatorPipe, "|".to_string()),
+        "?" => (TokenType::OperatorOptional, "?".to_string()),
         "&" => (TokenType::OperatorAmpersand, "&".to_string()),
         "~" => (TokenType::OperatorTilde, "~".to_string()),
         "^" => (TokenType::OperatorCaret, "^".to_string()),
