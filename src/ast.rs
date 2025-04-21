@@ -34,7 +34,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
         line: 0,
         column: 0
     };
-
+    
     let root: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(root_token))));
     let mut current_parent_: Node = Rc::clone(&root);
 
