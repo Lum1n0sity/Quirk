@@ -7,8 +7,35 @@ use std::io::prelude::*;
 use std::path::Path;
 use strum_macros::Display;
 use crate::error_handler::*;
+use std::collections::HashMap;
+use once_cell::sync::Lazy;
 
-#[derive(PartialEq, Debug, Clone, Display)]
+static KEYWORDS: Lazy<HashMap<&'static str, TokenType>> = Lazy::new(|| {
+    let mut m = HashMap::new();
+    m.insert("fn", TokenType::KeywordFn);
+    m.insert("immut", TokenType::KeywordImmut);
+    m.insert("let", TokenType::KeywordLet);
+    m.insert("heap!", TokenType::KeywordHeap);
+    m.insert("return", TokenType::KeywordReturn);
+    m.insert("construct", TokenType::KeywordConstruct);
+    m.insert("if", TokenType::KeywordIf);
+    m.insert("elif", TokenType::KeywordElIf);
+    m.insert("else", TokenType::KeywordElse);
+    m.insert("for", TokenType::KeywordFor);
+    m.insert("while", TokenType::KeywordWhile);
+    m.insert("break", TokenType::KeywordBreak);
+    m.insert("continue", TokenType::KeywordContinue);
+    m.insert("import", TokenType::KeywordImport);
+    m.insert("async", TokenType::KeywordAsync);
+    m.insert("await", TokenType::KeywordAwait);
+    m.insert("enum", TokenType::KeywordEnum);
+    m.insert("class", TokenType::KeywordClass);
+    m.insert("struct", TokenType::KeywordStruct);
+    m.insert("this", TokenType::KeywordThis);
+    m
+});
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display)]
 pub enum TokenType {
     // Keywords
     KeywordFn, KeywordImmut, KeywordLet, KeywordHeap, KeywordReturn,
@@ -102,7 +129,7 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
     let mut line: u32 = 1;
     let mut column: u32 = 1;
     let chars: Vec<char> = content.chars().collect();
-
+    
     let mut i: usize = 0;
     while i < chars.len() {
         let c = chars[i];
@@ -240,94 +267,76 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
     tokens
 }
 
-/// Classifies a word into its appropriate TokenType based on its content and format.
+/// Looks ahead in the character array without advancing the current position.
 ///
 /// # Arguments
 ///
-/// * `word` - A string slice that holds the word to be classified
+/// * `chars` - A slice of characters to look ahead in
+/// * `i` - The current position in the character slice
+/// * `n` - The number of positions to look ahead
 ///
 /// # Returns
 ///
-/// * `TokenType` - Returns the appropriate TokenType based on the word's content:
-///   - Keywords (if, else, while, etc.)
-///   - Data types (int, float, string, etc.)
-///   - Literals (numbers, strings, booleans)
-///   - Identifiers (variable names, function names)
+/// * `Option<char>` - Returns Some(char) if a character exists at position i + n,
+///                    None if the position is out of bounds
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
-/// let token_type = classify_word("42");
-/// assert_eq!(token_type, TokenType::IntegerLiteral);
+/// let chars = vec!['a', 'b', 'c'];
+/// assert_eq!(peek(&chars, 0, 1), Some('b')); // Peek one character ahead
+/// assert_eq!(peek(&chars, 0, 2), Some('c')); // Peek two characters ahead
+/// assert_eq!(peek(&chars, 1, 2), None);      // Peek beyond the end
 /// ```
-fn classify_word(word: &str) -> TokenType {
-    match_keyword(word)
-        .or_else(|| match_literal(word))
-        .or_else(|| Some(TokenType::Identifier))
-        .unwrap()
+///
+/// This function is particularly useful for:
+/// - Looking ahead to make decisions about token classification
+/// - Checking for multi-character operators or tokens
+/// - Preventing buffer overflows by safely handling bounds checking
+fn peek(chars: &[char], i: usize, n: usize) -> Option<char> {
+    if i + n < chars.len() {
+        chars.get(i + n).copied()   
+    } else {
+        None
+    }
 }
 
-/// Matches a given word against predefined keywords in the language and returns the corresponding TokenType.
+/// Classifies a word into its corresponding TokenType.
 ///
 /// # Arguments
 ///
-/// * `word` - A string slice that holds the word to be matched against keywords
+/// * `word` - A string slice containing the word to classify
 ///
 /// # Returns
 ///
-/// * `TokenType` - Returns the matching keyword TokenType if found, otherwise returns TokenType::Identifier
+/// * `TokenType` - Returns the appropriate TokenType for the word:
+///   - A keyword TokenType if the word matches a predefined keyword
+///   - A literal TokenType if the word matches a literal pattern
+///   - TokenType::Identifier if no other matches are found
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
-/// let token_type = match_keyword("if");
-/// assert_eq!(token_type, TokenType::KeywordIf);
+/// // Keywords
+/// assert_eq!(classify_word("if"), TokenType::KeywordIf);
+///
+/// // Literals
+/// assert_eq!(classify_word("123"), TokenType::IntegerLiteral);
+/// assert_eq!(classify_word("true"), TokenType::BooleanLiteral);
+///
+/// // Identifiers
+/// assert_eq!(classify_word("myVariable"), TokenType::Identifier);
 /// ```
-fn match_keyword(word: &str) -> Option<TokenType> {
-    match word {
-        "fn" => Some(TokenType::KeywordFn),
-        "immut" => Some(TokenType::KeywordImmut),
-        "let" => Some(TokenType::KeywordLet),
-        "heap!" => Some(TokenType::KeywordHeap),
-        "return" => Some(TokenType::KeywordReturn),
-        "construct" => Some(TokenType::KeywordConstruct),
-        "if" => Some(TokenType::KeywordIf),
-        "elif" => Some(TokenType::KeywordElIf),
-        "else" => Some(TokenType::KeywordElse),
-        "for" => Some(TokenType::KeywordFor),
-        "while" => Some(TokenType::KeywordWhile),
-        "break" => Some(TokenType::KeywordBreak),
-        "continue" => Some(TokenType::KeywordContinue),
-        "import" => Some(TokenType::KeywordImport),
-        "async" => Some(TokenType::KeywordAsync),
-        "await" => Some(TokenType::KeywordAwait),
-        "enum" => Some(TokenType::KeywordEnum),
-        "class" => Some(TokenType::KeywordClass),
-        "struct" => Some(TokenType::KeywordStruct),
-        "this" => Some(TokenType::KeywordThis),
-        // Data Types
-        "int" => Some(TokenType::DataTypeInt),
-        "uint" => Some(TokenType::DataTypeUint),
-        "int8" => Some(TokenType::DataTypeInt8),
-        "uint8" => Some(TokenType::DataTypeUint8),
-        "int16" => Some(TokenType::DataTypeInt16),
-        "uint16" => Some(TokenType::DataTypeUint16),
-        "int32" => Some(TokenType::DataTypeInt32),
-        "uint32" => Some(TokenType::DataTypeUint32),
-        "int64" => Some(TokenType::DataTypeInt64),
-        "uint64" => Some(TokenType::DataTypeUint64),
-        "int128" => Some(TokenType::DataTypeInt128),
-        "uint128" => Some(TokenType::DataTypeUint128),
-        "float" => Some(TokenType::DataTypeFloat),
-        "float32" => Some(TokenType::DataTypeFloat32),
-        "float64" => Some(TokenType::DataTypeFloat64),
-        "string" => Some(TokenType::DataTypeString),
-        "char" => Some(TokenType::DataTypeChar),
-        "bool" => Some(TokenType::DataTypeBool),
-        "any" => Some(TokenType::DataTypeAny),
-        "void" => Some(TokenType::DataTypeVoid),
-        _ => None
+///
+/// This function first checks if the word is a predefined keyword using the KEYWORDS map.
+/// If not a keyword, it attempts to match the word as a literal using match_literal().
+/// If neither a keyword nor a literal, it defaults to classifying the word as an Identifier.
+fn classify_word(word: &str) -> TokenType {
+    if let Some(t) = KEYWORDS.get(word) {
+        return *t;
     }
+
+    match_literal(word).unwrap_or(TokenType::Identifier)
 }
 
 /// Attempts to classify a string as a literal token type.
