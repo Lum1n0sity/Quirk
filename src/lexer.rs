@@ -7,8 +7,9 @@ use std::io::prelude::*;
 use std::path::Path;
 use strum_macros::Display;
 use crate::error_handler::*;
+use std::collections::HashMap;
 
-#[derive(PartialEq, Debug, Clone, Display)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Hash, Display)]
 pub enum TokenType {
     // Keywords
     KeywordFn, KeywordImmut, KeywordLet, KeywordHeap, KeywordReturn,
@@ -103,9 +104,16 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
     let mut column: u32 = 1;
     let chars: Vec<char> = content.chars().collect();
 
+    let mut is_char_colon: bool = false;
+    
     let mut i: usize = 0;
     while i < chars.len() {
         let c = chars[i];
+        is_char_colon = false;
+        
+        if c == ':' {
+            is_char_colon = true;
+        }
 
         if c != '\n' && !c.is_whitespace() {
             column += 1;
@@ -161,7 +169,7 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
 
         if c.is_whitespace() {
             if !word.is_empty() {
-                tokens.push(Token {token_type: classify_word(&word), value: word.clone(), line, column});
+                tokens.push(Token {token_type: classify_word(&word, is_char_colon), value: word.clone(), line, column});
                 word.clear();
             }
 
@@ -200,7 +208,7 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
             }
 
             if !word.is_empty() {
-                tokens.push(Token {token_type: classify_word(&word), value: word.clone(), line, column});
+                tokens.push(Token {token_type: classify_word(&word, is_char_colon), value: word.clone(), line, column});
                 word.clear();
             }
 
@@ -233,101 +241,116 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
     }
 
     if !word.is_empty() {
-        tokens.push(Token {token_type: classify_word(&word), value: word.clone(), line, column});
+        tokens.push(Token {token_type: classify_word(&word, is_char_colon), value: word.clone(), line, column});
     }
 
     tokens.push(Token{token_type: TokenType::EOF, value: "".to_string(), line, column});
     tokens
 }
 
-/// Classifies a word into its appropriate TokenType based on its content and format.
+/// Looks ahead in the character array without advancing the current position.
 ///
 /// # Arguments
 ///
-/// * `word` - A string slice that holds the word to be classified
+/// * `chars` - A slice of characters to look ahead in
+/// * `i` - The current position in the character slice
+/// * `n` - The number of positions to look ahead
 ///
 /// # Returns
 ///
-/// * `TokenType` - Returns the appropriate TokenType based on the word's content:
-///   - Keywords (if, else, while, etc.)
-///   - Data types (int, float, string, etc.)
-///   - Literals (numbers, strings, booleans)
-///   - Identifiers (variable names, function names)
+/// * `Option<char>` - Returns Some(char) if a character exists at position i + n,
+///                    None if the position is out of bounds
 ///
-/// # Example
+/// # Examples
 ///
 /// ```
-/// let token_type = classify_word("42");
-/// assert_eq!(token_type, TokenType::IntegerLiteral);
+/// let chars = vec!['a', 'b', 'c'];
+/// assert_eq!(peek(&chars, 0, 1), Some('b')); // Peek one character ahead
+/// assert_eq!(peek(&chars, 0, 2), Some('c')); // Peek two characters ahead
+/// assert_eq!(peek(&chars, 1, 2), None);      // Peek beyond the end
 /// ```
-fn classify_word(word: &str) -> TokenType {
-    match_keyword(word)
-        .or_else(|| match_literal(word))
-        .or_else(|| Some(TokenType::Identifier))
-        .unwrap()
+///
+/// This function is particularly useful for:
+/// - Looking ahead to make decisions about token classification
+/// - Checking for multi-character operators or tokens
+/// - Preventing buffer overflows by safely handling bounds checking
+fn peek(chars: &[char], i: usize, n: usize) -> Option<char> {
+    if i + n < chars.len() {
+        return chars.get(i + n).copied()   
+    } else {
+        None
+    }
 }
 
-/// Matches a given word against predefined keywords in the language and returns the corresponding TokenType.
-///
-/// # Arguments
-///
-/// * `word` - A string slice that holds the word to be matched against keywords
-///
-/// # Returns
-///
-/// * `TokenType` - Returns the matching keyword TokenType if found, otherwise returns TokenType::Identifier
-///
-/// # Example
-///
-/// ```
-/// let token_type = match_keyword("if");
-/// assert_eq!(token_type, TokenType::KeywordIf);
-/// ```
-fn match_keyword(word: &str) -> Option<TokenType> {
-    match word {
-        "fn" => Some(TokenType::KeywordFn),
-        "immut" => Some(TokenType::KeywordImmut),
-        "let" => Some(TokenType::KeywordLet),
-        "heap!" => Some(TokenType::KeywordHeap),
-        "return" => Some(TokenType::KeywordReturn),
-        "construct" => Some(TokenType::KeywordConstruct),
-        "if" => Some(TokenType::KeywordIf),
-        "elif" => Some(TokenType::KeywordElIf),
-        "else" => Some(TokenType::KeywordElse),
-        "for" => Some(TokenType::KeywordFor),
-        "while" => Some(TokenType::KeywordWhile),
-        "break" => Some(TokenType::KeywordBreak),
-        "continue" => Some(TokenType::KeywordContinue),
-        "import" => Some(TokenType::KeywordImport),
-        "async" => Some(TokenType::KeywordAsync),
-        "await" => Some(TokenType::KeywordAwait),
-        "enum" => Some(TokenType::KeywordEnum),
-        "class" => Some(TokenType::KeywordClass),
-        "struct" => Some(TokenType::KeywordStruct),
-        "this" => Some(TokenType::KeywordThis),
-        // Data Types
-        "int" => Some(TokenType::DataTypeInt),
-        "uint" => Some(TokenType::DataTypeUint),
-        "int8" => Some(TokenType::DataTypeInt8),
-        "uint8" => Some(TokenType::DataTypeUint8),
-        "int16" => Some(TokenType::DataTypeInt16),
-        "uint16" => Some(TokenType::DataTypeUint16),
-        "int32" => Some(TokenType::DataTypeInt32),
-        "uint32" => Some(TokenType::DataTypeUint32),
-        "int64" => Some(TokenType::DataTypeInt64),
-        "uint64" => Some(TokenType::DataTypeUint64),
-        "int128" => Some(TokenType::DataTypeInt128),
-        "uint128" => Some(TokenType::DataTypeUint128),
-        "float" => Some(TokenType::DataTypeFloat),
-        "float32" => Some(TokenType::DataTypeFloat32),
-        "float64" => Some(TokenType::DataTypeFloat64),
-        "string" => Some(TokenType::DataTypeString),
-        "char" => Some(TokenType::DataTypeChar),
-        "bool" => Some(TokenType::DataTypeBool),
-        "any" => Some(TokenType::DataTypeAny),
-        "void" => Some(TokenType::DataTypeVoid),
-        _ => None
+
+fn classify_word(word: &str, is_next_char_colon: bool) -> TokenType {
+    if is_next_char_colon {
+        return TokenType::Identifier;
     }
+    
+    let keywords = get_keywords();
+    let data_types = get_data_types();
+
+    if let Some(t) = keywords.get(word) {
+        return *t;
+    }
+
+    if let Some(t) = data_types.get(word) {
+        return *t;
+    }
+
+    match_literal(word).unwrap_or(TokenType::Identifier)
+}
+
+fn get_keywords() -> HashMap<&'static str, TokenType> {
+    let mut keywords = HashMap::new();
+    keywords.insert("fn", TokenType::KeywordFn);
+    keywords.insert("immut", TokenType::KeywordImmut);
+    keywords.insert("let", TokenType::KeywordLet);
+    keywords.insert("heap!", TokenType::KeywordHeap);
+    keywords.insert("return", TokenType::KeywordReturn);
+    keywords.insert("construct", TokenType::KeywordConstruct);
+    keywords.insert("if", TokenType::KeywordIf);
+    keywords.insert("elif", TokenType::KeywordElIf);
+    keywords.insert("else", TokenType::KeywordElse);
+    keywords.insert("for", TokenType::KeywordFor);
+    keywords.insert("while", TokenType::KeywordWhile);
+    keywords.insert("break", TokenType::KeywordBreak);
+    keywords.insert("continue", TokenType::KeywordContinue);
+    keywords.insert("import", TokenType::KeywordImport);
+    keywords.insert("async", TokenType::KeywordAsync);
+    keywords.insert("await", TokenType::KeywordAwait);
+    keywords.insert("enum", TokenType::KeywordEnum);
+    keywords.insert("class", TokenType::KeywordClass);
+    keywords.insert("struct", TokenType::KeywordStruct);
+    keywords.insert("this", TokenType::KeywordThis);
+    // Data Types
+    keywords
+}
+
+fn get_data_types() -> HashMap<&'static str, TokenType> {
+    let mut data_types = HashMap::new();
+    data_types.insert("int", TokenType::DataTypeInt);
+    data_types.insert("uint", TokenType::DataTypeUint);
+    data_types.insert("int8", TokenType::DataTypeInt8);
+    data_types.insert("uint8", TokenType::DataTypeUint8);
+    data_types.insert("int16", TokenType::DataTypeInt16);
+    data_types.insert("uint16", TokenType::DataTypeUint16);
+    data_types.insert("int32", TokenType::DataTypeInt32);
+    data_types.insert("uint32", TokenType::DataTypeUint32);
+    data_types.insert("int64", TokenType::DataTypeInt64);
+    data_types.insert("uint64", TokenType::DataTypeUint64);
+    data_types.insert("int128", TokenType::DataTypeInt128);
+    data_types.insert("uint128", TokenType::DataTypeUint128);
+    data_types.insert("float", TokenType::DataTypeFloat);
+    data_types.insert("float32", TokenType::DataTypeFloat32);
+    data_types.insert("float64", TokenType::DataTypeFloat64);
+    data_types.insert("string", TokenType::DataTypeString);
+    data_types.insert("char", TokenType::DataTypeChar);
+    data_types.insert("bool", TokenType::DataTypeBool);
+    data_types.insert("void", TokenType::DataTypeVoid);
+    data_types.insert("any", TokenType::DataTypeAny);
+    data_types
 }
 
 /// Attempts to classify a string as a literal token type.
