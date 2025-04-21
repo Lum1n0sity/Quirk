@@ -19,7 +19,7 @@ pub enum TokenType {
     DataTypeInt, DataTypeUint, DataTypeInt8, DataTypeUint8, DataTypeInt16, DataTypeUint16,
     DataTypeInt32, DataTypeUint32, DataTypeInt64, DataTypeUint64, DataTypeInt128, DataTypeUint128,
     DataTypeFloat, DataTypeFloat32, DataTypeFloat64, DataTypeString, DataTypeChar, DataTypeBool,
-    DataTypeVoid,
+    DataTypeVoid, DataTypeAny,
     // Identifiers & Literals
     Identifier, IntegerLiteral, FloatLiteral, StringLiteral, CharLiteral, BooleanLiteral, NoneLiteral,
     // Operators & Symbols
@@ -324,6 +324,7 @@ fn match_keyword(word: &str) -> Option<TokenType> {
         "string" => Some(TokenType::DataTypeString),
         "char" => Some(TokenType::DataTypeChar),
         "bool" => Some(TokenType::DataTypeBool),
+        "any" => Some(TokenType::DataTypeAny),
         "void" => Some(TokenType::DataTypeVoid),
         _ => None
     }
