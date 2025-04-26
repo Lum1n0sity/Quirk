@@ -50,7 +50,7 @@ pub enum TokenType {
     // Identifiers & Literals
     Identifier, IntegerLiteral, FloatLiteral, StringLiteral, CharLiteral, BooleanLiteral, NoneLiteral,
     // Operators & Symbols
-    OperatorPlus, OperatorMinus, OperatorStar, OperatorSlash, OperatorPercent,
+    OperatorPlus, OperatorMinus, OperatorMultiply, OperatorDivide, OperatorModulo,
     OperatorAssign, OperatorEqual, OperatorNotEqual, OperatorLess, OperatorGreater,
     OperatorLessEqual, OperatorGreaterEqual, OperatorAnd, OperatorOr, OperatorNot, OperatorOptional, OperatorFallback,
     OperatorSemicolon,
@@ -129,7 +129,7 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
     let mut line: u32 = 1;
     let mut column: u32 = 1;
     let chars: Vec<char> = content.chars().collect();
-    
+
     let mut i: usize = 0;
     while i < chars.len() {
         let c = chars[i];
@@ -295,7 +295,7 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
 /// - Preventing buffer overflows by safely handling bounds checking
 fn peek(chars: &[char], i: usize, n: usize) -> Option<char> {
     if i + n < chars.len() {
-        chars.get(i + n).copied()   
+        chars.get(i + n).copied()
     } else {
         None
     }
@@ -401,14 +401,14 @@ fn match_operator(chars: &[char]) -> (TokenType, String) {
         "??" => return (TokenType::OperatorFallback, "??".to_string()),
         _ => {},
     }
-    
+
     let op_str = chars[0].to_string();
     match op_str.as_str() {
         "+" => (TokenType::OperatorPlus, "+".to_string()),
         "-" => (TokenType::OperatorMinus, "-".to_string()),
-        "*" => (TokenType::OperatorStar, "*".to_string()),
-        "%" => (TokenType::OperatorPercent, "%".to_string()),
-        "/" => (TokenType::OperatorSlash, "/".to_string()),
+        "*" => (TokenType::OperatorMultiply, "*".to_string()),
+        "%" => (TokenType::OperatorModulo, "%".to_string()),
+        "/" => (TokenType::OperatorDivide, "/".to_string()),
         "=" => (TokenType::OperatorAssign, "=".to_string()),
         ">" => (TokenType::OperatorGreater, ">".to_string()),
         "<" => (TokenType::OperatorLess, "<".to_string()),
