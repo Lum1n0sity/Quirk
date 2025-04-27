@@ -34,7 +34,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
         line: 0,
         column: 0
     };
-    
+
     let root: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(root_token))));
     let mut current_parent_: Node = Rc::clone(&root);
 
@@ -91,8 +91,8 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
         }
     };
 
-    /// Creates a new `CodeBlock` AST node at the given token index and adds it as a child  
-    /// to the provided `current_parent`. Returns the newly created code block node to become  
+    /// Creates a new `CodeBlock` AST node at the given token index and adds it as a child
+    /// to the provided `current_parent`. Returns the newly created code block node to become
     /// the new parent for subsequent child nodes.
     ///
     /// # Arguments
@@ -299,26 +299,26 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
                 continue;
             }
-            
-            if token.token_type == TokenType::KeywordEnum {
+
+            if token.token_type == TokenType::KeywordEnum || token.token_type == TokenType::KeywordStruct {
                 let mut enum_init: Box<ASTNode> = Box::new(ASTNode::new(token));
-                
+
                 let (enum_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::EOL], file_path, "Unexpected EOF after enum");
                 i = new_i;
-                
+
                 enum_init.children = generate_ast_from_tokens(enum_tokens, file_path, "Enum is empty!");
-                
+
                 check_last_child(&enum_init, TokenType::PunctuationBraceOpen, file_path, "Missing '{'", tokens[i].line, tokens[i].column);
-                
+
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(enum_init)));
-                
+
                 current_parent_ = generate_code_block(i, &current_parent_);
-                
+
                 let (enum_items_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::PunctuationBraceClose], file_path, "Unexpected EOF after enum items");
                 i = new_i - 1;
-                
+
                 let enum_items_nodes = generate_ast_from_tokens(enum_items_tokens, file_path, "Enum items are empty!");
-                
+
                 for node in enum_items_nodes {
                     current_parent_.borrow_mut().children.push(node);
                 }
@@ -480,10 +480,10 @@ fn get_tokens_until<'a>(i: &usize, tokens: &'a Vec<Token>, allowed_types: &'a [T
         output_tokens.push(&tokens[j]);
         j += 1;
     }
-    
+
     if j < tokens.len() {
         output_tokens.retain(|token| token.token_type != TokenType::EOL);
-        
+
         (output_tokens, j)
     } else {
         let _err = Err::new(
@@ -522,7 +522,7 @@ fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u
     }
 
     let mut prev_token: &Token = tokens[0];
-    
+
     for token in tokens {
         if prev_token.token_type == TokenType::Identifier && (token.token_type == TokenType::OperatorIncrease || token.token_type == TokenType::OperatorDecrease) {
             let node: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(prev_token))));
