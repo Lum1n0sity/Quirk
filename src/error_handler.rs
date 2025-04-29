@@ -16,7 +16,9 @@ pub struct Err {
     pub line: u32,
     pub column: u32,
     pub file: Option<String>,
-    pub source: Option<Box<dyn std::error::Error>>
+    pub source: Option<Box<dyn std::error::Error>>,
+    pub code_snippet: Option<String>,
+    pub pointer_msg: Option<String>,
 }
 
 impl Err {
@@ -27,7 +29,9 @@ impl Err {
             line,
             column,
             file: None,
-            source: None
+            source: None,
+            code_snippet: None,
+            pointer_msg: None,
         }
     }
 
@@ -41,6 +45,16 @@ impl Err {
         self
     }
 
+    pub fn with_code_snippet(mut self, code_snippet: impl Into<String>) -> Self {
+        self.code_snippet = Some(code_snippet.into());
+        self
+    }
+    
+    pub fn with_pointer_msg(mut self, pointer_msg: impl Into<String>) -> Self {
+        self.pointer_msg = Some(pointer_msg.into());
+        self
+    }
+    
     pub fn panic(&self) {
         panic!("{}", self);
     }
