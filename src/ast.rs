@@ -7,27 +7,49 @@ use crate::error_handler::*;
 use regex::Regex;
 use std::rc::Rc;
 use std::cell::RefCell;
+use once_cell::sync::OnceCell;
+
+static FILE_PATH: OnceCell<String> = OnceCell::new();
+
+fn get_file_path() -> &'static str {
+    FILE_PATH.get().expect("file path not set").as_str()
+}
 
 type Node = Rc<RefCell<Box<ASTNode>>>;
 
+/// Represents a node in the Abstract Syntax Tree
 #[derive(Debug, PartialEq, Clone)]
 pub struct ASTNode {
     pub token_type: TokenType,
-    pub value:  String,
-    pub children: Vec<Node>
+    pub value: String,
+    pub children: Vec<Node>,
+    pub line: u32,
+    pub file: &'static str
 }
 
+/// Implementation of core functionality for ASTNode
 impl ASTNode {
-    pub fn new(token: &Token) -> Self {
+    /// Creates a new ASTNode from a given token
+    ///
+    /// # Arguments
+    /// * `token` - The token to create the node from
+    ///
+    /// # Returns
+    /// A new ASTNode instance with the token's type and value
+    pub fn new(token: &Token, file_path: &'static str) -> Self {
         ASTNode {
             token_type: token.token_type.clone(),
             value: token.value.clone(),
-            children: Vec::new()
+            children: Vec::new(),
+            line: token.line,
+            file: file_path
         }
     }
 }
 
 pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
+    FILE_PATH.set(file_path.into()).expect("file path already set");
+    
     let root_token: &Token = &Token {
         token_type: TokenType::Root,
         value: "".to_string(),
@@ -35,7 +57,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
         column: 0
     };
 
-    let root: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(root_token))));
+    let root: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(root_token, get_file_path()))));
     let mut current_parent_: Node = Rc::clone(&root);
 
     let mut i: usize = 0;
@@ -50,11 +72,10 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     /// * `expected` - The expected `TokenType` to match.
     /// * `node_to_add` - AST node to which the token will be added as a child.
     /// * `current_parent` - The current parent node in the AST.
-    /// * `file_path` - Path to the source file (used for error reporting).
     /// * `error_msg` - Error message to display if the token doesn't match.
-    let expect_token = |i: usize, tokens: &Vec<Token>, expected: TokenType, node_to_add: Node, current_parent: &Node, file_path: &str, error_msg: &str| {
+    let expect_token = |i: usize, tokens: &Vec<Token>, expected: TokenType, node_to_add: Node, current_parent: &Node, error_msg: &str| {
         if i < tokens.len() && tokens[i].token_type == expected {
-            node_to_add.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i])))));
+            node_to_add.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i], get_file_path())))));
             current_parent.borrow_mut().children.push(node_to_add);
         } else {
             let token = &tokens[i.min(tokens.len().saturating_sub(1))];
@@ -64,7 +85,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 token.line,
                 token.column,
             )
-                .with_file(file_path)
+                .with_file(get_file_path())
                 .panic();
         }
     };
@@ -75,11 +96,10 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     /// # Arguments
     /// * `node_init` - The AST node whose last child will be checked.
     /// * `expected` - The expected `TokenType` for the last child.
-    /// * `file_path` - Path to the source file (used for error reporting).
     /// * `error_msg` - Error message to display if the check fails.
     /// * `line` - Line number for error reporting.
     /// * `column` - Column number for error reporting.
-    let check_last_child = |node_init: &Box<ASTNode>, expected: TokenType, file_path: &str, error_msg: &str, line: u32, column: u32| {
+    let check_last_child = |node_init: &Box<ASTNode>, expected: TokenType, error_msg: &str, line: u32, column: u32| {
         let last_child: &&Node = &node_init.children.last().unwrap();
         if (**last_child).borrow().token_type != expected {
             let _err = Err::new(
@@ -87,7 +107,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 error_msg,
                 line,
                 column
-            ).with_file(file_path).panic();
+            ).with_file(get_file_path()).panic();
         }
     };
 
@@ -103,7 +123,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     /// A new `Node` representing the generated `CodeBlock`, to be used as the new parent node.
     let generate_code_block = |i: usize, current_parent: &Node| -> Node {
         let code_block_token: Token = Token{token_type: TokenType::CodeBlock, value: "".to_string(), line: tokens[i].line, column: tokens[i].column};
-        let code_block: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token))));
+        let code_block: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(&code_block_token, get_file_path()))));
 
         let code_block_clone: Node = Rc::clone(&code_block);
 
@@ -119,7 +139,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
         // Update scope if token is a }
         if token.token_type == TokenType::PunctuationBraceClose {
-            let new_current_parent = pop_current_parent(&root, &current_parent_, file_path);
+            let new_current_parent = pop_current_parent(&root, &current_parent_);
             current_parent_ = new_current_parent;
             i += 1;
             continue;
@@ -131,16 +151,16 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
         if keyword_regex.is_match(&current_token_type_str) {
             if token.token_type == TokenType::KeywordReturn{
-                let node_init: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
+                let node_init: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token, get_file_path()))));
 
-                let (node_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::OperatorSemicolon, TokenType::EOL], file_path, "Unexpected EOF after 'return'");
+                let (node_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::OperatorSemicolon, TokenType::EOL], "Unexpected EOF after 'return'");
                 i = new_i;
 
                 for token in node_tokens {
-                    node_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
+                    node_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token, get_file_path())))));
                 }
 
-                expect_token(i, &tokens, TokenType::OperatorSemicolon, node_init, &current_parent_, file_path, "Missing token ';'");
+                expect_token(i, &tokens, TokenType::OperatorSemicolon, node_init, &current_parent_, "Missing token ';'");
 
                 continue;
             }
@@ -160,14 +180,14 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     _ => error_msg_ast = "Invalid input!"
                 }
 
-                let mut node_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut node_init: Box<ASTNode> = Box::new(ASTNode::new(token, get_file_path()));
 
-                let (node_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::OperatorSemicolon, TokenType::EOL], file_path, error_msg_tokens);
+                let (node_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::OperatorSemicolon, TokenType::EOL], error_msg_tokens);
                 i = new_i;
 
-                node_init.children = generate_ast_from_tokens(node_tokens, file_path, error_msg_ast);
+                node_init.children = generate_ast_from_tokens(node_tokens, error_msg_ast);
 
-                expect_token(i, &tokens, TokenType::OperatorSemicolon, Rc::new(RefCell::new(node_init)), &current_parent_, file_path, "Missing token ';'")
+                expect_token(i, &tokens, TokenType::OperatorSemicolon, Rc::new(RefCell::new(node_init)), &current_parent_, "Missing token ';'")
             }
 
             if token.token_type == TokenType::KeywordFn || token.token_type == TokenType::KeywordIf || token.token_type == TokenType::KeywordElIf || token.token_type == TokenType::KeywordWhile || token.token_type == TokenType::KeywordClass {
@@ -191,14 +211,14 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                     _ => error_msg_ast = "Invalid input!"
                 }
 
-                let mut node_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut node_init: Box<ASTNode> = Box::new(ASTNode::new(token, get_file_path()));
 
-                let (node_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::EOL], file_path, error_msg_tokens);
+                let (node_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::EOL], error_msg_tokens);
                 i = new_i;
 
-                node_init.children = generate_ast_from_tokens(node_tokens, file_path, error_msg_ast);
+                node_init.children = generate_ast_from_tokens(node_tokens, error_msg_ast);
 
-                check_last_child(&node_init, TokenType::PunctuationBraceOpen, file_path, "Missing token '{'", tokens[i].line, tokens[i].column);
+                check_last_child(&node_init, TokenType::PunctuationBraceOpen, "Missing token '{'", tokens[i].line, tokens[i].column);
 
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(node_init)));
 
@@ -208,14 +228,14 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
             }
 
             if token.token_type == TokenType::KeywordFor {
-                let mut for_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut for_init: Box<ASTNode> = Box::new(ASTNode::new(token, get_file_path()));
 
-                let (condition_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::EOL], file_path, "Unexpected EOF after condition");
+                let (condition_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::EOL], "Unexpected EOF after condition");
                 i = new_i;
 
-                for_init.children = generate_for_loop_condition_ast(condition_tokens, file_path, tokens[i].line);
+                for_init.children = generate_for_loop_condition_ast(condition_tokens, tokens[i].line);
 
-                check_last_child(&for_init, TokenType::PunctuationBraceOpen, file_path, "Missing token '{'", tokens[i].line, tokens[i].column);
+                check_last_child(&for_init, TokenType::PunctuationBraceOpen, "Missing token '{'", tokens[i].line, tokens[i].column);
 
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(for_init)));
 
@@ -225,7 +245,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
             }
 
             if token.token_type == TokenType::KeywordElse {
-                let mut else_init:Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut else_init:Box<ASTNode> = Box::new(ASTNode::new(token, get_file_path()));
 
                 if i + 1 >= tokens.len() || tokens[i + 1].token_type != TokenType::PunctuationBraceOpen {
                     let _err = Err::new(
@@ -233,10 +253,10 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         "Missing token '{'",
                         tokens[i].line,
                         tokens[i].column
-                    ).with_file(file_path).panic();
+                    ).with_file(get_file_path()).panic();
                 }
 
-                else_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i + 1])))));
+                else_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i + 1], get_file_path())))));
                 i += 1;
 
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(else_init)));
@@ -247,14 +267,14 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
             }
 
             if token.token_type == TokenType::KeywordBreak || token.token_type == TokenType::KeywordContinue {
-                let node: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
+                let node: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token, get_file_path()))));
                 i += 1;
 
-                expect_token(i, &tokens, TokenType::OperatorSemicolon, node, &current_parent_, file_path, "Missing token ';'");
+                expect_token(i, &tokens, TokenType::OperatorSemicolon, node, &current_parent_, "Missing token ';'");
             }
 
             if token.token_type == TokenType::KeywordConstruct {
-                let mut construct_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut construct_init: Box<ASTNode> = Box::new(ASTNode::new(token, get_file_path()));
                 let mut construct_tokens: Vec<&Token> = Vec::new();
 
                 let mut is_new_object: bool = false;
@@ -278,21 +298,21 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         "Unexpected EOF after 'construct'",
                         token.line,
                         token.column
-                    ).with_file(file_path).panic();
+                    ).with_file(get_file_path()).panic();
                 }
 
                 for token in construct_tokens {
-                    construct_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
+                    construct_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token, get_file_path())))));
                 }
 
                 if !is_new_object {
-                    check_last_child(&construct_init, TokenType::PunctuationBraceOpen, file_path, "Missing token '{'", tokens[i].line, tokens[i].column);
+                    check_last_child(&construct_init, TokenType::PunctuationBraceOpen, "Missing token '{'", tokens[i].line, tokens[i].column);
 
                     current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(construct_init)));
 
                     current_parent_ = generate_code_block(i, &current_parent_);
                 } else {
-                    check_last_child(&construct_init, TokenType::OperatorSemicolon, file_path, "Missing token ';'", tokens[i].line, tokens[i].column);
+                    check_last_child(&construct_init, TokenType::OperatorSemicolon, "Missing token ';'", tokens[i].line, tokens[i].column);
 
                     current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(construct_init)));
                 }
@@ -301,23 +321,23 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
             }
 
             if token.token_type == TokenType::KeywordEnum || token.token_type == TokenType::KeywordStruct {
-                let mut enum_init: Box<ASTNode> = Box::new(ASTNode::new(token));
+                let mut enum_init: Box<ASTNode> = Box::new(ASTNode::new(token, get_file_path()));
 
-                let (enum_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::EOL], file_path, "Unexpected EOF after 'enum'");
+                let (enum_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::EOL], "Unexpected EOF after 'enum'");
                 i = new_i;
 
-                enum_init.children = generate_ast_from_tokens(enum_tokens, file_path, "Enum is empty!");
+                enum_init.children = generate_ast_from_tokens(enum_tokens, "Enum is empty!");
 
-                check_last_child(&enum_init, TokenType::PunctuationBraceOpen, file_path, "Missing token '{'", tokens[i].line, tokens[i].column);
+                check_last_child(&enum_init, TokenType::PunctuationBraceOpen, "Missing token '{'", tokens[i].line, tokens[i].column);
 
                 current_parent_.borrow_mut().children.push(Rc::new(RefCell::new(enum_init)));
 
                 current_parent_ = generate_code_block(i, &current_parent_);
 
-                let (enum_items_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::PunctuationBraceClose], file_path, "Unexpected EOF after enum items");
+                let (enum_items_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::PunctuationBraceClose], "Unexpected EOF after enum items");
                 i = new_i - 1;
 
-                let enum_items_nodes = generate_ast_from_tokens(enum_items_tokens, file_path, "Enum items are empty!");
+                let enum_items_nodes = generate_ast_from_tokens(enum_items_tokens, "Enum items are empty!");
 
                 for node in enum_items_nodes {
                     current_parent_.borrow_mut().children.push(node);
@@ -327,33 +347,33 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
         if token.token_type == TokenType::Identifier{
             if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::OperatorAssign {
-                let identifier_init: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
+                let identifier_init: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token, get_file_path()))));
 
-                let (identifier_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::OperatorSemicolon, TokenType::EOL], file_path, "Unexpected EOF after assignment");
+                let (identifier_tokens, new_i) = get_tokens_until(&i, &tokens, &[TokenType::OperatorSemicolon, TokenType::EOL], "Unexpected EOF after assignment");
                 i = new_i;
 
-                identifier_init.borrow_mut().children = generate_ast_from_tokens(identifier_tokens, file_path, "Variable assignment is empty!");
+                identifier_init.borrow_mut().children = generate_ast_from_tokens(identifier_tokens, "Variable assignment is empty!");
 
-                expect_token(i, &tokens, TokenType::OperatorSemicolon, identifier_init, &current_parent_, file_path, "Missing token ';'");
+                expect_token(i, &tokens, TokenType::OperatorSemicolon, identifier_init, &current_parent_, "Missing token ';'");
 
                 continue;
             }
 
             if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::OperatorIncrease || tokens[i + 1].token_type == TokenType::OperatorDecrease {
-                let identifier_init: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
+                let identifier_init: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token, get_file_path()))));
 
-                identifier_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i + 1])))));
+                identifier_init.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i + 1], get_file_path())))));
 
                 i += 2;
 
-                expect_token(i, &tokens, TokenType::OperatorSemicolon, identifier_init, &current_parent_, file_path, "Missing token ';'");
+                expect_token(i, &tokens, TokenType::OperatorSemicolon, identifier_init, &current_parent_, "Missing token ';'");
 
                 continue;
             }
 
             if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::PunctuationParenOpen {
-                let (function_call, new_i) = generate_ast_function_call(&tokens, i, file_path);
-
+                let (function_call, new_i) = generate_ast_function_call(&tokens, i);
+                
                 i = new_i;
 
                 current_parent_.borrow_mut().children.push(function_call.unwrap());
@@ -385,20 +405,19 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 /// # Arguments
 /// * `root` - The root node of the AST
 /// * `current_parent` - The current parent node to pop
-/// * `file_path` - The path to the source file for error reporting
 ///
 /// # Panics
 /// * If attempting to change scope at root level
 /// * If unable to borrow current_parent
 /// * If unable to find parent of current_parent
-fn pop_current_parent(root: &Node, current_parent: &Node, file_path: &str) -> Node {
+fn pop_current_parent(root: &Node, current_parent: &Node) -> Node {
     if Rc::ptr_eq(root, current_parent) {
         let _err = Err::new(
             ErrorType::Other,
             "You cannot change the scope on root level",
             0,
             0
-        ).with_file(file_path).panic();
+        ).with_file(get_file_path()).panic();
 
         unreachable!();
     }
@@ -413,7 +432,7 @@ fn pop_current_parent(root: &Node, current_parent: &Node, file_path: &str) -> No
                 "Failed to borrow current_parent",
                 0,
                 0
-            ).with_file(file_path).panic();
+            ).with_file(get_file_path()).panic();
 
             unreachable!();
         }
@@ -427,7 +446,7 @@ fn pop_current_parent(root: &Node, current_parent: &Node, file_path: &str) -> No
             "Failed to find parent of current_parent",
             0,
             0
-        ).with_file(file_path).panic();
+        ).with_file(get_file_path()).panic();
 
         unreachable!();
     }
@@ -463,7 +482,6 @@ fn find_parent_of_current_parent(current: &Node, current_parent: &Node) -> Optio
 /// * `i` - Current token index
 /// * `tokens` - Vector of tokens to check
 /// * `allowed_types` - Slice of allowed token types to stop at
-/// * `file_path` - Path to the source file for error reporting
 /// * `error_msg` - Error message to display if end of tokens is reached
 ///
 /// # Returns
@@ -471,7 +489,7 @@ fn find_parent_of_current_parent(current: &Node, current_parent: &Node) -> Optio
 ///
 /// # Panics
 /// * If end of tokens is reached before finding an allowed token type
-fn get_tokens_until<'a>(i: &usize, tokens: &'a Vec<Token>, allowed_types: &'a [TokenType], file_path: &str, error_msg: &str) -> (Vec<&'a Token>, usize) {
+fn get_tokens_until<'a>(i: &usize, tokens: &'a Vec<Token>, allowed_types: &'a [TokenType], error_msg: &str) -> (Vec<&'a Token>, usize) {
     let mut output_tokens: Vec<&Token> = Vec::new();
 
     let mut j: usize = *i + 1;
@@ -491,7 +509,7 @@ fn get_tokens_until<'a>(i: &usize, tokens: &'a Vec<Token>, allowed_types: &'a [T
             error_msg,
             tokens[*i].line,
             tokens[*i].column
-        ).with_file(file_path).panic();
+        ).with_file(get_file_path()).panic();
 
         unreachable!();
     }
@@ -501,7 +519,6 @@ fn get_tokens_until<'a>(i: &usize, tokens: &'a Vec<Token>, allowed_types: &'a [T
 ///
 /// # Arguments
 /// * `tokens` - Vector of tokens representing the loop condition
-/// * `file_path` - Path to the source file for error reporting
 /// * `line` - Line number for error reporting
 ///
 /// # Returns
@@ -509,7 +526,7 @@ fn get_tokens_until<'a>(i: &usize, tokens: &'a Vec<Token>, allowed_types: &'a [T
 ///
 /// # Panics
 /// * If the condition tokens are empty
-fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u32) -> Vec<Node> {
+fn generate_for_loop_condition_ast(tokens: Vec<&Token>, line: u32) -> Vec<Node> {
     let mut condition_ast: Vec<Node> = Vec::new();
 
     if tokens.is_empty() {
@@ -518,18 +535,18 @@ fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u
           "Missing condition",
           line,
            0
-      ).with_file(file_path).panic();
+      ).with_file(get_file_path()).panic();
     }
 
     let mut prev_token: &Token = tokens[0];
 
     for token in tokens {
         if prev_token.token_type == TokenType::Identifier && (token.token_type == TokenType::OperatorIncrease || token.token_type == TokenType::OperatorDecrease) {
-            let node: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(prev_token))));
-            node.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
+            let node: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(prev_token, get_file_path()))));
+            node.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token, get_file_path())))));
             condition_ast.push(node);
         } else {
-            let node: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token))));
+            let node: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(token, get_file_path()))));
             condition_ast.push(node);
         }
 
@@ -545,15 +562,14 @@ fn generate_for_loop_condition_ast(tokens: Vec<&Token>, file_path: &str, line: u
 /// # Arguments
 /// * `tokens` - Vector of all tokens
 /// * `i` - Current token index
-/// * `file_path` - Path to the source file for error reporting
 ///
 /// # Returns
 /// * Tuple containing the optional function call node and the new index position
 ///
 /// # Panics
 /// * If semicolon is missing after the function call
-fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) -> (Option<Node>, usize){
-    let function_call: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i]))));
+fn generate_ast_function_call(tokens: &Vec<Token>, i: usize) -> (Option<Node>, usize){
+    let function_call: Node = Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i], get_file_path()))));
     let mut function_call_tokens: Vec<&Token> = Vec::new();
 
     let mut j: usize = i + 1;
@@ -572,11 +588,11 @@ fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) ->
     }
 
     for tokens in function_call_tokens {
-        function_call.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(tokens)))));
+        function_call.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(tokens, get_file_path())))));
     }
 
     if j < tokens.len() && tokens[j].token_type == TokenType::OperatorSemicolon {
-        function_call.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[j])))));
+        function_call.borrow_mut().children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[j], get_file_path())))));
         (Some(function_call), j)
     } else {
         let _err = Err::new(
@@ -584,7 +600,7 @@ fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) ->
             "Missing token ';'",
             tokens[i].line,
             tokens[i].column
-        ).with_file(file_path).panic();
+        ).with_file(get_file_path()).panic();
 
         (None, j)
     }
@@ -594,7 +610,6 @@ fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) ->
 ///
 /// # Arguments
 /// * `tokens` - Vector of tokens to convert to AST nodes
-/// * `file_path` - Path to the source file for error reporting
 /// * `error_msg` - Error message to display if tokens vector is empty
 ///
 /// # Returns
@@ -602,7 +617,7 @@ fn generate_ast_function_call(tokens: &Vec<Token>, i: usize, file_path: &str) ->
 ///
 /// # Panics
 /// * If the tokens vector is empty
-fn generate_ast_from_tokens(tokens: Vec<&Token>, file_path: &str, error_msg: &str) -> Vec<Node> {
+fn generate_ast_from_tokens(tokens: Vec<&Token>, error_msg: &str) -> Vec<Node> {
     let mut ast: Vec<Node> = Vec::new();
 
     if tokens.is_empty() {
@@ -611,13 +626,13 @@ fn generate_ast_from_tokens(tokens: Vec<&Token>, file_path: &str, error_msg: &st
             error_msg,
             0,
             0
-        ).with_file(file_path).panic();
+        ).with_file(get_file_path()).panic();
 
         return ast;
     }
 
     for token in tokens {
-        ast.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token)))));
+        ast.push(Rc::new(RefCell::new(Box::new(ASTNode::new(token, get_file_path())))));
     }
 
     ast
