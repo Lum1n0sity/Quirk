@@ -49,7 +49,7 @@ impl ASTNode {
 
 pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
     FILE_PATH.set(file_path.into()).expect("file path already set");
-    
+
     let root_token: &Token = &Token {
         token_type: TokenType::Root,
         value: "".to_string(),
@@ -84,9 +84,8 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 error_msg,
                 token.line,
                 token.column,
-            )
-                .with_file(get_file_path())
-                .panic();
+                get_file_path()
+            ).panic();
         }
     };
 
@@ -106,8 +105,9 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                 ErrorType::Syntax,
                 error_msg,
                 line,
-                column
-            ).with_file(get_file_path()).panic();
+                column,
+                get_file_path()
+            ).panic();
         }
     };
 
@@ -252,8 +252,9 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         ErrorType::Syntax,
                         "Missing token '{'",
                         tokens[i].line,
-                        tokens[i].column
-                    ).with_file(get_file_path()).panic();
+                        tokens[i].column,
+                        get_file_path()
+                    ).panic();
                 }
 
                 else_init.children.push(Rc::new(RefCell::new(Box::new(ASTNode::new(&tokens[i + 1], get_file_path())))));
@@ -297,8 +298,9 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
                         ErrorType::Syntax,
                         "Unexpected EOF after 'construct'",
                         token.line,
-                        token.column
-                    ).with_file(get_file_path()).panic();
+                        token.column,
+                        get_file_path()
+                    ).panic();
                 }
 
                 for token in construct_tokens {
@@ -373,7 +375,7 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
 
             if i + 1 < tokens.len() && tokens[i + 1].token_type == TokenType::PunctuationParenOpen {
                 let (function_call, new_i) = generate_ast_function_call(&tokens, i);
-                
+
                 i = new_i;
 
                 current_parent_.borrow_mut().children.push(function_call.unwrap());
@@ -393,7 +395,8 @@ pub fn generate_ast(tokens: Vec<Token>, file_path: &str) -> Box<ASTNode> {
             ErrorType::Other,
             "Failed to unwrap root ast node",
             0,
-            0
+            0,
+            get_file_path()
         ).panic();
 
         unreachable!();
@@ -416,8 +419,9 @@ fn pop_current_parent(root: &Node, current_parent: &Node) -> Node {
             ErrorType::Other,
             "You cannot change the scope on root level",
             0,
-            0
-        ).with_file(get_file_path()).panic();
+            0,
+            get_file_path()
+        ).panic();
 
         unreachable!();
     }
@@ -431,8 +435,9 @@ fn pop_current_parent(root: &Node, current_parent: &Node) -> Node {
                 ErrorType::Other,
                 "Failed to borrow current_parent",
                 0,
-                0
-            ).with_file(get_file_path()).panic();
+                0,
+                get_file_path()
+            ).panic();
 
             unreachable!();
         }
@@ -445,8 +450,9 @@ fn pop_current_parent(root: &Node, current_parent: &Node) -> Node {
             ErrorType::Other,
             "Failed to find parent of current_parent",
             0,
-            0
-        ).with_file(get_file_path()).panic();
+            0,
+            get_file_path()
+        ).panic();
 
         unreachable!();
     }
@@ -508,8 +514,9 @@ fn get_tokens_until<'a>(i: &usize, tokens: &'a Vec<Token>, allowed_types: &'a [T
             ErrorType::Syntax,
             error_msg,
             tokens[*i].line,
-            tokens[*i].column
-        ).with_file(get_file_path()).panic();
+            tokens[*i].column,
+            get_file_path()
+        ).panic();
 
         unreachable!();
     }
@@ -533,9 +540,10 @@ fn generate_for_loop_condition_ast(tokens: Vec<&Token>, line: u32) -> Vec<Node> 
       let _err = Err::new(
           ErrorType::Syntax,
           "Missing condition",
-          line,
-           0
-      ).with_file(get_file_path()).panic();
+          line, 
+          0,
+          get_file_path()
+      ).panic();
     }
 
     let mut prev_token: &Token = tokens[0];
@@ -599,8 +607,9 @@ fn generate_ast_function_call(tokens: &Vec<Token>, i: usize) -> (Option<Node>, u
             ErrorType::Syntax,
             "Missing token ';'",
             tokens[i].line,
-            tokens[i].column
-        ).with_file(get_file_path()).panic();
+            tokens[i].column,
+            get_file_path()
+        ).panic();
 
         (None, j)
     }
@@ -625,8 +634,9 @@ fn generate_ast_from_tokens(tokens: Vec<&Token>, error_msg: &str) -> Vec<Node> {
             ErrorType::Syntax,
             error_msg,
             0,
-            0
-        ).with_file(get_file_path()).panic();
+            0,
+            get_file_path()
+        ).panic();
 
         return ast;
     }
