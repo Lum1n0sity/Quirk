@@ -75,10 +75,6 @@ impl std::fmt::Display for Err {
             write!(f, "^---{}\n", pointer_msg)?;
         }
 
-        // if let Some(file) = &self.file {
-        //     write!(f, "in file '{}'", file)?;
-        // }
-
         if let Some(source) = &self.source {
             write!(f, "\nCaused by: {}", source)?;
         }
