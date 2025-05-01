@@ -112,8 +112,9 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
             ErrorType::Syntax,
             "Invalid file type, file must end with .qk",
             0,
-            0
-        ).with_file(file_path).panic();
+            0,
+            file_path
+        ).panic();
     }
 
     // Get file content
@@ -249,8 +250,9 @@ pub fn get_tokens(file_path: &str) -> Vec<Token> {
                 ErrorType::Syntax,
                 format!("Unexpected token '{}'", c),
                 line,
-                column
-            ).with_file(file_path).panic();
+                column,
+                file_path
+            ).panic();
 
             i += 1;
         }
