@@ -3,7 +3,7 @@
 
 Quirk is a statically-typed programming language designed for simplicity, performance, and safety. It features strong typing, structural method matching, and automatic memory management while allowing developers to manage memory explicitly when needed.
 
-## Features
+## Features (WIP)
 
 - Strong Typing: Supports signed/unsigned integers, floats, strings, chars, and booleans.
 - Immutable and Mutable Variables: immut keyword for immutability.
